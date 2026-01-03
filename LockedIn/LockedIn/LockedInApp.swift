@@ -3,6 +3,7 @@
 //  LockedIn
 //
 
+import HealthKit
 import SwiftUI
 
 @main
@@ -10,19 +11,137 @@ struct LockedInApp: App {
     @State private var bankState = BankState()
     @State private var familyControlsManager = FamilyControlsManager()
     @State private var blockingManager = BlockingManager()
+    @State private var healthKitManager = HealthKitManager()
 
     var body: some Scene {
         WindowGroup {
             DashboardView(bankState: bankState, familyControlsManager: familyControlsManager)
                 .onAppear {
+                    // Write marker for extension cross-process test
+                    SharedState.debugMainAppMarker = "app_\(Date().timeIntervalSince1970)"
+                    SharedState.synchronize()
+
                     setupBlocking()
+                    setupHealthKit()
                 }
                 .onChange(of: familyControlsManager.selection) { _, _ in
-                    updateBlocking()
+                    // Selection changed - must restart monitoring with new app tokens
+                    updateBlockingForSelectionChange()
                 }
-                .onChange(of: bankState.balance) { _, _ in
-                    updateBlocking()
+                .onChange(of: bankState.balance) { _, newBalance in
+                    // Balance changed - only update shield state, don't restart monitoring
+                    // (Restarting would reset the device's usage counter!)
+                    blockingManager.syncShieldState(
+                        balance: newBalance,
+                        selection: familyControlsManager.selection
+                    )
                 }
+                .onReceive(NotificationCenter.default.publisher(for: UIApplication.willEnterForegroundNotification)) { _ in
+                    // Reload state when app returns to foreground
+                    reloadStateFromShared()
+                }
+        }
+    }
+
+    // MARK: - HealthKit Setup
+
+    private func setupHealthKit() {
+        // Set up workout detection callback
+        healthKitManager.onWorkoutsDetected = { workouts in
+            processNewWorkouts(workouts)
+        }
+
+        // Request authorization and start observing
+        // Note: For read-only access, we can't reliably check if user granted permission.
+        // We optimistically attempt queries after requesting authorization.
+        Task {
+            do {
+                try await healthKitManager.requestAuthorization()
+
+                // Fetch any workouts we missed while app was closed
+                // If user denied access, queries will return empty results (no error)
+                await syncWorkouts()
+
+                // Start background observation
+                healthKitManager.startObserving()
+            } catch {
+                print("HealthKit authorization failed: \(error)")
+            }
+        }
+    }
+
+    private func syncWorkouts() async {
+        do {
+            let processedIDs = SharedState.processedWorkoutIDs
+            let newWorkouts = try await healthKitManager.fetchNewWorkouts(excludingIDs: processedIDs)
+
+            if !newWorkouts.isEmpty {
+                await MainActor.run {
+                    processNewWorkouts(newWorkouts)
+                }
+            }
+
+            SharedState.lastHealthKitSync = Date()
+            SharedState.synchronize()
+        } catch {
+            print("Failed to sync workouts: \(error)")
+        }
+    }
+
+    private func processNewWorkouts(_ workouts: [HKWorkout]) {
+        for workout in workouts {
+            let workoutID = workout.uuid.uuidString
+
+            // Skip if already processed
+            guard !SharedState.processedWorkoutIDs.contains(workoutID) else { continue }
+
+            // Calculate earned minutes
+            let durationMinutes = Int(workout.duration / 60)
+            guard durationMinutes > 0 else { continue }
+
+            // Get workout type display name
+            let source = HealthKitManager.displayName(for: workout.workoutActivityType)
+
+            // Add to balance
+            bankState.earn(
+                workoutMinutes: durationMinutes,
+                source: source,
+                timestamp: workout.endDate
+            )
+
+            // Mark as processed
+            SharedState.markWorkoutProcessed(workoutID)
+        }
+    }
+
+    // MARK: - State Reload
+
+    private func reloadStateFromShared() {
+        // Reload balance from SharedState (may have changed by DeviceActivityMonitor extension)
+        bankState.syncFromSharedState()
+
+        // Sync shield state based on current balance (doesn't restart monitoring)
+        blockingManager.syncShieldState(
+            balance: bankState.balance,
+            selection: familyControlsManager.selection
+        )
+
+        // Start monitoring only if it's not already running
+        // (Don't restart if running - that would reset the device's usage counter!)
+        if familyControlsManager.isAuthorized && familyControlsManager.hasBlockedApps {
+            do {
+                try blockingManager.startMonitoringIfNeeded(
+                    selection: familyControlsManager.selection,
+                    balance: bankState.balance
+                )
+            } catch {
+                print("Failed to start monitoring: \(error)")
+            }
+        }
+
+        // Check for new workouts
+        Task {
+            await syncWorkouts()
         }
     }
 
@@ -40,9 +159,9 @@ struct LockedInApp: App {
             selection: familyControlsManager.selection
         )
 
-        // Start monitoring for usage
+        // Start monitoring for usage (only if not already running)
         do {
-            try blockingManager.startMonitoring(
+            try blockingManager.startMonitoringIfNeeded(
                 selection: familyControlsManager.selection,
                 balance: bankState.balance
             )
@@ -51,14 +170,17 @@ struct LockedInApp: App {
         }
     }
 
-    private func updateBlocking() {
+    /// Called when the user changes their blocked app selection.
+    /// This MUST restart monitoring to register the new app tokens.
+    private func updateBlockingForSelectionChange() {
         guard familyControlsManager.isAuthorized else { return }
 
-        // Update monitoring threshold and shield state
+        // Force restart monitoring with new selection
         do {
             try blockingManager.updateMonitoring(
                 balance: bankState.balance,
-                selection: familyControlsManager.selection
+                selection: familyControlsManager.selection,
+                forceRestart: true  // Selection changed, must restart
             )
         } catch {
             print("Failed to update monitoring: \(error)")

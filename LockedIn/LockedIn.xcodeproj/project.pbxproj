@@ -88,37 +88,11 @@
 			);
 			target = FC7922EF2F08B7A400A66398 /* ShieldActionExtension */;
 		};
-		FC7923072F08C1F200A66398 /* Exceptions for "LockedIn" folder in "DeviceActivityMonitorExtension" target */ = {
-			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
-			membershipExceptions = (
-				Services/SharedState.swift,
-			);
-			target = FC7922C32F08B62B00A66398 /* DeviceActivityMonitorExtension */;
-		};
-		FC7923082F08C1F200A66398 /* Exceptions for "LockedIn" folder in "ShieldConfigurationExtension" target */ = {
-			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
-			membershipExceptions = (
-				Services/SharedState.swift,
-			);
-			target = FC7922DA2F08B77C00A66398 /* ShieldConfigurationExtension */;
-		};
-		FC7923092F08C1F200A66398 /* Exceptions for "LockedIn" folder in "ShieldActionExtension" target */ = {
-			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
-			membershipExceptions = (
-				Services/SharedState.swift,
-			);
-			target = FC7922EF2F08B7A400A66398 /* ShieldActionExtension */;
-		};
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		FC7922192F08790C00A66398 /* LockedIn */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
-			exceptions = (
-				FC7923072F08C1F200A66398 /* Exceptions for "LockedIn" folder in "DeviceActivityMonitorExtension" target */,
-				FC7923082F08C1F200A66398 /* Exceptions for "LockedIn" folder in "ShieldConfigurationExtension" target */,
-				FC7923092F08C1F200A66398 /* Exceptions for "LockedIn" folder in "ShieldActionExtension" target */,
-			);
 			path = LockedIn;
 			sourceTree = "<group>";
 		};
@@ -570,10 +544,12 @@
 				ENABLE_USER_SELECTED_FILES = readonly;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = LOCKEDIN;
+				INFOPLIST_KEY_NSHealthShareUsageDescription = "LockedIn reads your workouts to calculate earned screen time. Work out to unlock your apps.";
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphoneos*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphonesimulator*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents[sdk=iphoneos*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents[sdk=iphonesimulator*]" = YES;
+				INFOPLIST_KEY_UIBackgroundModes = "processing fetch";
 				"INFOPLIST_KEY_UILaunchScreen_Generation[sdk=iphoneos*]" = YES;
 				"INFOPLIST_KEY_UILaunchScreen_Generation[sdk=iphonesimulator*]" = YES;
 				"INFOPLIST_KEY_UIStatusBarStyle[sdk=iphoneos*]" = UIStatusBarStyleDefault;
@@ -592,6 +568,7 @@
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
 				SUPPORTS_MACCATALYST = NO;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "$(inherited) MAIN_APP";
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
 				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -617,10 +594,12 @@
 				ENABLE_USER_SELECTED_FILES = readonly;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = LOCKEDIN;
+				INFOPLIST_KEY_NSHealthShareUsageDescription = "LockedIn reads your workouts to calculate earned screen time. Work out to unlock your apps.";
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphoneos*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphonesimulator*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents[sdk=iphoneos*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents[sdk=iphonesimulator*]" = YES;
+				INFOPLIST_KEY_UIBackgroundModes = "processing fetch";
 				"INFOPLIST_KEY_UILaunchScreen_Generation[sdk=iphoneos*]" = YES;
 				"INFOPLIST_KEY_UILaunchScreen_Generation[sdk=iphonesimulator*]" = YES;
 				"INFOPLIST_KEY_UIStatusBarStyle[sdk=iphoneos*]" = UIStatusBarStyleDefault;
@@ -639,6 +618,7 @@
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
 				SUPPORTS_MACCATALYST = NO;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "$(inherited) MAIN_APP";
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
 				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
 				SWIFT_EMIT_LOC_STRINGS = YES;

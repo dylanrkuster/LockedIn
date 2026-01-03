@@ -10,61 +10,74 @@ import SwiftUI
 struct DashboardView: View {
     let bankState: BankState
     @Bindable var familyControlsManager: FamilyControlsManager
+    @State private var showActivityHistory = false
 
     var body: some View {
-        ZStack {
-            // Pure black canvas
-            AppColor.background
-                .ignoresSafeArea()
+        NavigationStack {
+            ZStack {
+                // Pure black canvas
+                AppColor.background
+                    .ignoresSafeArea()
 
-            VStack(spacing: 0) {
-                // Header
-                header
-                    .padding(.horizontal, AppSpacing.lg)
-                    .padding(.top, AppSpacing.md)
-
-                Spacer()
-
-                // The Vault - center of attention
-                BalanceDisplay(
-                    balance: bankState.balance,
-                    difficulty: bankState.difficulty
-                )
-
-                Spacer()
-
-                // Progress gauge
-                ProgressBar(
-                    current: bankState.balance,
-                    max: bankState.maxBalance,
-                    accentColor: bankState.difficulty.color
-                )
-                .padding(.horizontal, AppSpacing.xxl)
-
-                Spacer()
-                    .frame(height: AppSpacing.xl)
-
-                // Footer sections
                 VStack(spacing: 0) {
-                    // Divider
-                    divider
+                    // Header
+                    header
+                        .padding(.horizontal, AppSpacing.lg)
+                        .padding(.top, AppSpacing.md)
 
-                    // Activity (transaction history)
-                    ActivitySection(
-                        transactions: bankState.recentTransactions,
+                    Spacer()
+
+                    // The Vault - center of attention
+                    BalanceDisplay(
+                        balance: bankState.balance,
+                        difficulty: bankState.difficulty
+                    )
+
+                    Spacer()
+
+                    // Progress gauge
+                    ProgressBar(
+                        current: bankState.balance,
+                        max: bankState.maxBalance,
                         accentColor: bankState.difficulty.color
                     )
-                    .padding(.horizontal, AppSpacing.lg)
-                    .padding(.vertical, AppSpacing.md)
+                    .padding(.horizontal, AppSpacing.xxl)
 
-                    // Divider
-                    divider
+                    Spacer()
+                        .frame(height: AppSpacing.xl)
 
-                    // Blocked apps
-                    BlockedAppsSection(manager: familyControlsManager)
+                    // Footer sections
+                    VStack(spacing: 0) {
+                        // Divider
+                        divider
+
+                        // Activity (transaction history)
+                        ActivitySection(
+                            transactions: bankState.recentTransactions,
+                            accentColor: bankState.difficulty.color,
+                            currentBalance: bankState.balance,
+                            onSeeAll: { showActivityHistory = true }
+                        )
                         .padding(.horizontal, AppSpacing.lg)
                         .padding(.vertical, AppSpacing.md)
+
+                        // Divider
+                        divider
+
+                        // Blocked apps
+                        BlockedAppsSection(manager: familyControlsManager)
+                            .padding(.horizontal, AppSpacing.lg)
+                            .padding(.vertical, AppSpacing.md)
+                    }
                 }
+            }
+            .navigationBarHidden(true)
+            .navigationDestination(isPresented: $showActivityHistory) {
+                ActivityHistoryView(
+                    transactions: bankState.recentTransactions,
+                    accentColor: bankState.difficulty.color,
+                    currentBalance: bankState.balance
+                )
             }
         }
         .preferredColorScheme(.dark)

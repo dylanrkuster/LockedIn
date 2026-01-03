@@ -3,41 +3,83 @@
 This file tracks current work state across context resets.
 
 ## Current Ticket
-001 - Build Main Dashboard screen
+004 - Activity Tracking and Balance System (Core Loop)
 
 ## Phase
-REVIEW (5/6) - GATE
+APPROVE (6/6) - GATE
 
 ## Complexity
-standard
+complex
 
 ## Acceptance Criteria
-- [ ] Large, prominent balance display showing minutes remaining (e.g., "47:32")
-- [ ] "minutes left" label below the balance
-- [ ] Progress bar showing balance relative to max (based on difficulty)
-- [ ] Current difficulty mode displayed (e.g., "Difficulty: HARD")
-- [ ] Blocked Apps section showing count and app names
-- [ ] Settings gear icon in navigation bar
-- [ ] Works with hardcoded/mock data initially
-- [ ] Matches brand voice (direct, minimal, no fluff)
+
+### Earning
+- [ ] Completing a workout in Apple Health adds earned minutes to balance
+- [ ] Earned minutes respect difficulty ratio (Hard 2:1 = 30min workout → +15)
+- [ ] Balance cannot exceed difficulty cap (excess forfeited)
+- [ ] Same workout synced twice is only counted once
+- [ ] Workout transaction shows workout type name, not generic "Workout"
+- [ ] Balance updates without manual refresh (background observer)
+
+### Spending
+- [ ] Using a blocked app decrements balance in real-time
+- [ ] Each blocked app creates its own transaction with app name
+- [ ] Spending is 1:1 (10 min on TikTok = -10 from balance)
+- [ ] Balance stops at 0 (no negative balance)
+- [ ] Shield activates immediately when balance hits 0
+
+### Activity Display
+- [ ] Activity section shows real transactions, not mock data
+- [ ] Shows 8 most recent transactions
+- [ ] Sorted by timestamp, most recent first
+- [ ] Transactions older than 7 days are not shown
+
+### Persistence
+- [ ] Balance persists across app launches
+- [ ] Transactions persist across app launches
+- [ ] Workouts are not double-counted after app restart
+
+### Authorization
+- [ ] HealthKit permission requested appropriately
+- [ ] App functions (spend-only) if HealthKit denied
+
+## Key Formulas
+
+**Earning:**
+```
+earned_minutes = floor(workout_duration_minutes × difficulty_multiplier)
+```
+
+| Difficulty | Multiplier | Max Balance |
+|------------|------------|-------------|
+| Easy       | 2.0        | 240 min     |
+| Medium     | 1.0        | 180 min     |
+| Hard       | 0.5        | 120 min     |
+| Extreme    | 0.33       | 60 min      |
+
+**Spending:**
+```
+spent_minutes = actual_minutes_in_blocked_app (1:1, always)
+```
+
+## Workout Type Display Names
+- Running → "Run"
+- Walking → "Walk"
+- Cycling → "Cycling"
+- Functional/Traditional Strength Training → "Strength"
+- High Intensity Interval Training → "HIIT"
+- Yoga → "Yoga"
+- Swimming → "Swim"
+- All others → "Workout"
 
 ## Key Decisions
 - (none yet)
 
 ## Affected Areas
-- LockedIn/LockedIn/ (main app source)
+- (to be determined in PLAN phase)
 
 ## Files Modified
-- LockedInApp.swift (updated)
-- CLAUDE.md (updated OS version)
-- Models/Difficulty.swift (new)
-- Models/BankState.swift (new)
-- Views/DashboardView.swift (new)
-- Views/Components/BalanceDisplay.swift (new)
-- Views/Components/ProgressBar.swift (new)
-- Views/Components/BlockedAppsSection.swift (new)
-- Item.swift (deleted)
-- ContentView.swift (deleted)
+- (to be determined in PLAN phase)
 
 ## Blockers
 None

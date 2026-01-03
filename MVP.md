@@ -552,6 +552,8 @@ Explicitly descoped to ship fast:
 
 5. **Should we show cumulative stats?** "You've earned 47 hours and blocked 89 hours of brain rot." Motivational, but adds complexity. Current stance: Post-MVP.
 
+6. **When to request HealthKit permission?** Current stance: On first app launch. Future: Move to onboarding flow once that's built.
+
 ---
 
 ## 13. Version Roadmap

@@ -33,7 +33,7 @@ final class BankState {
         }
     }
 
-    var transactions: [Transaction]
+    private(set) var transactions: [Transaction]
 
     var maxBalance: Int {
         difficulty.maxBalance
@@ -77,45 +77,93 @@ final class BankState {
         let savedBalance = SharedState.balance
 
         // Use saved balance if available, otherwise start with default
-        let startingBalance = savedBalance > 0 ? savedBalance : SharedState.defaultStartingBalance
+        let isFreshInstall = savedBalance <= 0
+        let startingBalance = isFreshInstall ? SharedState.defaultStartingBalance : savedBalance
+
+        // On fresh install, reset stale tracking data from App Groups
+        if isFreshInstall {
+            SharedState.usedMinutesToday = 0
+            SharedState.transactions = []
+            SharedState.synchronize()
+        }
+
+        // Load persisted transactions
+        let savedTransactions = SharedState.transactions.map { $0.toTransaction() }
 
         self.init(
             balance: startingBalance,
             difficulty: savedDifficulty,
-            transactions: []
+            transactions: savedTransactions
         )
     }
 
     // MARK: - Balance Operations
 
-    /// Add minutes to balance (from workout)
-    func earn(_ minutes: Int) {
-        let earned = max(0, minutes)
-        let newBalance = min(balance + earned, maxBalance)
-        if newBalance > balance {
-            transactions.append(Transaction(
-                id: UUID(),
-                amount: newBalance - balance,
-                source: "Workout",
-                timestamp: Date()
-            ))
-            balance = newBalance
-        }
+    /// Add minutes to balance from a workout
+    /// - Parameters:
+    ///   - workoutMinutes: Duration of the workout in minutes
+    ///   - source: Display name for the workout type (e.g., "Run", "HIIT")
+    ///   - timestamp: When the workout ended (defaults to now)
+    func earn(workoutMinutes: Int, source: String, timestamp: Date = Date()) {
+        let earnedMinutes = Int(Double(workoutMinutes) * difficulty.screenMinutesPerWorkoutMinute)
+        let actualEarned = min(earnedMinutes, maxBalance - balance)
+
+        guard actualEarned > 0 else { return }
+
+        let transaction = Transaction(
+            id: UUID(),
+            amount: actualEarned,
+            source: source,
+            timestamp: timestamp
+        )
+        transactions.append(transaction)
+        balance += actualEarned
+
+        // Persist transaction
+        SharedState.appendTransaction(TransactionRecord(from: transaction))
     }
 
     /// Deduct minutes from balance (from app usage)
-    func spend(_ minutes: Int, source: String) {
+    /// - Parameters:
+    ///   - minutes: Minutes to deduct
+    ///   - source: App name or description
+    ///   - timestamp: When the usage started (defaults to now)
+    func spend(_ minutes: Int, source: String, timestamp: Date = Date()) {
         let spent = max(0, minutes)
-        let newBalance = max(0, balance - spent)
-        if newBalance < balance {
-            transactions.append(Transaction(
-                id: UUID(),
-                amount: -(balance - newBalance),
-                source: source,
-                timestamp: Date()
-            ))
-            balance = newBalance
-        }
+        let actualSpent = min(spent, balance) // Can't go negative
+
+        guard actualSpent > 0 else { return }
+
+        let transaction = Transaction(
+            id: UUID(),
+            amount: -actualSpent,
+            source: source,
+            timestamp: timestamp
+        )
+        transactions.append(transaction)
+        balance -= actualSpent
+
+        // Persist transaction
+        SharedState.appendTransaction(TransactionRecord(from: transaction))
+    }
+
+    /// Reload transactions from SharedState (call after extension updates)
+    func reloadTransactions() {
+        transactions = SharedState.transactions.map { $0.toTransaction() }
+    }
+
+    /// Sync both balance and transactions from SharedState
+    /// Used when returning from background to pick up extension changes
+    func syncFromSharedState() {
+        // Temporarily disable didSet persistence by setting directly
+        let sharedBalance = SharedState.balance
+        let sharedTransactions = SharedState.transactions.map { $0.toTransaction() }
+
+        // Update without triggering persistence (it's already persisted)
+        self.transactions = sharedTransactions
+
+        // Clamp to current difficulty max
+        self.balance = max(0, min(sharedBalance, maxBalance))
     }
 }
 
