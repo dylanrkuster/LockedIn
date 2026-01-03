@@ -1,7 +1,7 @@
 # LockedIn - MVP Vision Document
 
 > **Last Updated:** January 2, 2026
-> **Status:** Draft v1.0
+> **Status:** In Development (Dashboard + App Selection complete)
 
 ---
 
@@ -237,28 +237,38 @@ Your bank is ticking. Go earn more.
 
 ### 4.2 Main Dashboard
 
-Minimal. One screen. No tabs.
+Minimal. One screen. No tabs. Brutalist aesthetic.
 
 ```
 ┌─────────────────────────────────┐
-│ LOCKEDIN               ⚙️       │
-├─────────────────────────────────┤
+│ LOCKEDIN                    [⚙] │
 │                                 │
-│            47:32                │
-│         minutes left            │
 │                                 │
-│     ████████████░░░░░░░░        │
-│         47 / 120 min            │
+│              47                 │
+│           REMAINING             │
 │                                 │
-│      Difficulty: HARD           │
+│             ▮▮▮░                │
+│          HARD · 2:1             │
 │                                 │
-├─────────────────────────────────┤
 │                                 │
-│  Blocked Apps (4)          ▼    │
-│  Instagram, TikTok, X, Snap     │
+│  0 ━━━━━━━━━━━━━━━━━━━━━━━ 120  │
+│            47 / 120             │
 │                                 │
+│  ─────────────────────────────  │
+│  ACTIVITY                    ▼  │
+│  ─────────────────────────────  │
+│  BLOCKED                     ▼  │
+│  [📷][🎵][𝕏][📘][👻][🎬]       │
+│  EDIT                           │
 └─────────────────────────────────┘
 ```
+
+**Key Elements:**
+- **Balance Display:** Massive number (120pt) with "REMAINING" label
+- **Difficulty Badge:** Rank bars + ratio display (e.g., "HARD · 2:1")
+- **Progress Bar:** Sharp edges, difficulty-colored fill, 0/max labels
+- **Activity Section:** Collapsible transaction history (8 most recent)
+- **Blocked Section:** Collapsible, shows app icons horizontally, EDIT button
 
 ### 4.3 Settings Screen
 
@@ -321,32 +331,49 @@ About
 ### 6.2 Data Model
 
 ```
-User
-├── difficulty: Difficulty (easy|medium|hard|extreme)
-├── bankBalance: Int (minutes)
-├── blockedApps: [ApplicationToken]
-├── createdAt: Date
-└── settings: UserSettings
+BankState (@Observable)
+├── balance: Int (minutes remaining)
+├── difficulty: Difficulty
+├── transactions: [Transaction]
+└── Computed:
+    ├── maxBalance: Int (from difficulty)
+    ├── progress: Double (0...1)
+    ├── isLocked: Bool (balance <= 0)
+    └── recentTransactions: [Transaction] (sorted)
 
-UserSettings
+Difficulty (enum)
+├── easy | medium | hard | extreme
+├── conversionRate: Int (workout min per screen min)
+├── maxBalance: Int
+├── barCount: Int (1-4 for rank display)
+├── ratioDisplay: String ("2:1")
+├── tagline: String
+└── color: Color
+
+Transaction
+├── id: UUID
+├── amount: Int (+ earned, - spent)
+├── source: String ("Workout", "Instagram", etc.)
+├── timestamp: Date
+└── Computed:
+    ├── isEarned: Bool
+    ├── formattedAmount: String ("+15" or "-25")
+    └── formattedTimestamp: String ("7:33pm" or "1/2 7:33pm")
+
+FamilyControlsManager (@Observable)
+├── authorizationStatus: AuthorizationStatus
+├── selection: FamilyActivitySelection (persisted)
+└── Computed:
+    ├── isAuthorized: Bool
+    ├── needsAuthorization: Bool
+    ├── wasDenied: Bool
+    ├── blockedAppCount: Int
+    └── hasBlockedApps: Bool
+
+UserSettings (future)
 ├── notifyAt15Min: Bool
 ├── notifyAt5Min: Bool
 └── notifyOnSync: Bool
-
-WorkoutLog
-├── id: UUID
-├── date: Date
-├── durationMinutes: Int
-├── workoutType: String
-├── minutesEarned: Int
-└── syncedAt: Date
-
-UsageLog
-├── id: UUID
-├── date: Date
-├── appToken: ApplicationToken
-├── minutesUsed: Int
-└── timestamp: Date
 ```
 
 ### 6.3 Sync Logic
@@ -719,25 +746,26 @@ LockedIn's visual design embodies **functional beauty through restraint**. Every
 **The Balance Display (Hero)**
 ```
         47
-      MINUTES
+     REMAINING
 
        ▮▮▮░
-       HARD
+    HARD · 2:1
 ```
-- Massive centered number
-- Understated label below
-- Difficulty rank with bars
+- Massive centered number (120pt SF Mono Bold)
+- "REMAINING" label below (11pt, tracked)
+- Difficulty badge: rank bars + ratio
 
-**Difficulty Rank Bars**
+**Difficulty Badge**
 ```
-▮░░░  EASY
-▮▮░░  MEDIUM
-▮▮▮░  HARD
-▮▮▮▮  EXTREME
+▮░░░  EASY · 1:2
+▮▮░░  MEDIUM · 1:1
+▮▮▮░  HARD · 2:1
+▮▮▮▮  EXTREME · 3:1
 ```
-- 4 bars total, filled based on level
-- Colored in difficulty accent
+- 4 bars total (3pt wide, 14pt tall)
+- Filled bars in difficulty accent color
 - Unfilled bars use `border` color
+- Ratio shows workout:screen conversion
 
 **Progress Bar**
 ```
@@ -749,6 +777,30 @@ LockedIn's visual design embodies **functional beauty through restraint**. Every
 - Fill color = difficulty accent
 - Track color = `border`
 - Min/max labels at edges
+
+**Activity Section (Collapsible)**
+```
+ACTIVITY                           ▼
++15   Workout                  7:33pm
+-12   Instagram                7:26pm
+-25   X                        6:53pm
++30   Workout                  5:38pm
+```
+- Shows 8 most recent transactions
+- Earned amounts in accent color, spent in tertiary
+- 12-hour timestamps (h:mma format)
+- Full row tappable to expand/collapse
+
+**Blocked Apps Section (Collapsible)**
+```
+BLOCKED                            ▼
+[📷][🎵][𝕏][📘][👻][🎬] +2
+EDIT
+```
+- Horizontal row of app icons (28pt, max 8 visible)
+- "+N" overflow indicator if more than 8 apps
+- EDIT button opens FamilyActivityPicker
+- Icons retain original colors (brand recognition)
 
 **Section Dividers**
 - 1pt horizontal line in `border` color
@@ -780,30 +832,60 @@ LockedIn's visual design embodies **functional beauty through restraint**. Every
 │  LOCKEDIN                              [⚙]  │
 │                                             │
 │                                             │
-│                                             │
 │                   47                        │
-│                MINUTES                      │
+│               REMAINING                     │
 │                                             │
 │                 ▮▮▮░                        │
-│                 HARD                        │
+│              HARD · 2:1                     │
 │                                             │
 │                                             │
 │  0 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 120  │
 │              47 / 120                       │
 │                                             │
 │  ─────────────────────────────────────────  │
-│                                             │
-│  BLOCKED                                 4  │
+│  ACTIVITY                                ▼  │
+│  ─────────────────────────────────────────  │
+│  BLOCKED                                 ▼  │
+│  [📷][🎵][𝕏][📘][👻][🎬]                   │
+│  EDIT                                       │
 │                                             │
 └─────────────────────────────────────────────┘
 ```
 
 **Hierarchy:**
-1. Balance number (the vault)
-2. Difficulty rank (identity)
+1. Balance number (the vault) — hero element
+2. Difficulty badge with ratio (identity)
 3. Progress bar (context)
-4. Blocked apps (reference)
+4. Activity section (transaction history)
+5. Blocked apps (reference + management)
 
 ---
 
-*Document authored by Claude. Updated January 2, 2026. Ready for founder review and iteration.*
+## Appendix E: Implementation Status
+
+### Completed
+- [x] Main Dashboard UI with brutalist design
+- [x] Balance display with "REMAINING" label
+- [x] Difficulty badge with rank bars and ratio
+- [x] Progress bar with accent colors
+- [x] Activity section with transaction history
+- [x] Blocked apps section with horizontal icons
+- [x] FamilyControls authorization flow
+- [x] FamilyActivityPicker integration
+- [x] App selection persistence (UserDefaults)
+
+### In Progress
+- [ ] Settings screen
+- [ ] HealthKit integration (earning minutes)
+- [ ] Actual app blocking (ManagedSettings)
+- [ ] Hard block screen
+
+### Not Started
+- [ ] Onboarding flow
+- [ ] DeviceActivity monitoring
+- [ ] Notifications
+- [ ] Real-time balance decrement
+
+---
+
+*Document authored by Claude. Updated January 2, 2026.*
