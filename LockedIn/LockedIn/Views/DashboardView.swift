@@ -9,7 +9,7 @@ import SwiftUI
 
 struct DashboardView: View {
     let bankState: BankState
-    @State private var familyControlsManager = FamilyControlsManager()
+    @Bindable var familyControlsManager: FamilyControlsManager
 
     var body: some View {
         ZStack {
@@ -101,23 +101,29 @@ struct DashboardView: View {
 }
 
 #Preview {
-    DashboardView(bankState: .mock)
+    DashboardView(bankState: .mock, familyControlsManager: FamilyControlsManager())
 }
 
 #Preview("Low Balance") {
-    DashboardView(bankState: BankState(
-        balance: 5,
-        difficulty: .extreme,
-        transactions: [
-            Transaction(id: UUID(), amount: -15, source: "TikTok", timestamp: Date().addingTimeInterval(-300))
-        ]
-    ))
+    DashboardView(
+        bankState: BankState(
+            balance: 5,
+            difficulty: .extreme,
+            transactions: [
+                Transaction(id: UUID(), amount: -15, source: "TikTok", timestamp: Date().addingTimeInterval(-300))
+            ]
+        ),
+        familyControlsManager: FamilyControlsManager()
+    )
 }
 
 #Preview("Full Balance") {
-    DashboardView(bankState: BankState(
-        balance: 240,
-        difficulty: .easy,
-        transactions: Transaction.mock
-    ))
+    DashboardView(
+        bankState: BankState(
+            balance: 240,
+            difficulty: .easy,
+            transactions: Transaction.mock
+        ),
+        familyControlsManager: FamilyControlsManager()
+    )
 }
