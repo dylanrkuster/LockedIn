@@ -254,14 +254,6 @@ Minimal. One screen. No tabs.
 │                                 │
 ├─────────────────────────────────┤
 │                                 │
-│  Today's Activity               │
-│  ─────────────────              │
-│  Earned: +45 min (strength)     │
-│  Spent:  -58 min                │
-│  Net:    -13 min                │
-│                                 │
-├─────────────────────────────────┤
-│                                 │
 │  Blocked Apps (4)          ▼    │
 │  Instagram, TikTok, X, Snap     │
 │                                 │
@@ -629,6 +621,188 @@ FEATURES
 
 Stop doom scrolling. Start earning.
 ```
+
+---
+
+## Appendix D: Design Language
+
+### Philosophy: Industrial Brutalism
+
+LockedIn's visual design embodies **functional beauty through restraint**. Every pixel earns its place. The UI itself is "no bullshit"—raw, stark, confident.
+
+**Core Principles:**
+
+| Principle | Meaning |
+|-----------|---------|
+| **Restraint** | Remove everything unnecessary. If it doesn't serve function, delete it. |
+| **Precision** | Exact spacing, perfect alignment, intentional typography. |
+| **Contrast** | Pure black canvas. White text. Color used sparingly and meaningfully. |
+| **Weight** | The balance number should feel heavy, precious, earned—like checking a vault. |
+| **Tension** | The design creates subtle psychological pressure that motivates action. |
+
+**Influences:**
+- Dieter Rams / Braun (functional beauty)
+- Swiss International Style (typography-driven hierarchy)
+- Industrial design (raw materials, visible structure)
+- Terminal/banking interfaces (monospace, data-dense)
+
+---
+
+### Color System
+
+**Base Palette (Dark Mode Only):**
+
+| Token | Hex | Usage |
+|-------|-----|-------|
+| `background` | `#000000` | Pure black canvas |
+| `surface` | `#111111` | Elevated surfaces (if needed) |
+| `border` | `#222222` | Dividers, progress bar track |
+| `textPrimary` | `#FFFFFF` | Balance number, headers |
+| `textSecondary` | `#888888` | Labels, secondary info |
+| `textTertiary` | `#666666` | Hints, disabled states |
+
+**Difficulty Accent Colors:**
+
+| Difficulty | Hex | Rationale |
+|------------|-----|-----------|
+| **Easy** | `#22C55E` | Green = growth, beginning |
+| **Medium** | `#EAB308` | Amber = caution, balance |
+| **Hard** | `#F97316` | Orange = warning, intensity |
+| **Extreme** | `#DC2626` | Red = danger, maximum |
+
+**Color Rules:**
+- Accent colors appear ONLY for difficulty-related elements (rank bars, progress fill, difficulty label)
+- No gradients. No shadows. Flat, honest color.
+- The accent color is earned—it represents the user's commitment level
+
+---
+
+### Typography
+
+**Hierarchy:**
+
+| Element | Font | Size | Weight | Tracking |
+|---------|------|------|--------|----------|
+| Balance Number | SF Mono | 120pt | Bold | 0 |
+| Section Label | SF Pro | 11-12pt | Semibold | 3-6pt |
+| Body Text | SF Pro | 14pt | Regular | 0 |
+| Mono Data | SF Mono | 10-11pt | Medium | 0 |
+
+**Rules:**
+- Labels are ALL CAPS with generous letter-spacing (tracking)
+- Numbers use monospace for the "data terminal" aesthetic
+- No decorative fonts. System fonts only.
+- Hierarchy through size and weight, never through decoration
+
+---
+
+### Spacing System
+
+| Token | Value | Usage |
+|-------|-------|-------|
+| `xs` | 4pt | Tight gaps (between rank bars) |
+| `sm` | 8pt | Related elements |
+| `md` | 16pt | Section internal padding |
+| `lg` | 24pt | Section separation |
+| `xl` | 32pt | Major section breaks |
+| `xxl` | 48pt | Hero element breathing room |
+
+**Rules:**
+- Generous whitespace (blackspace) around the balance—it's the star
+- Consistent horizontal padding (24pt from edges)
+- Let spacing create hierarchy, not boxes or dividers
+
+---
+
+### Component Patterns
+
+**The Balance Display (Hero)**
+```
+        47
+      MINUTES
+
+       ▮▮▮░
+       HARD
+```
+- Massive centered number
+- Understated label below
+- Difficulty rank with bars
+
+**Difficulty Rank Bars**
+```
+▮░░░  EASY
+▮▮░░  MEDIUM
+▮▮▮░  HARD
+▮▮▮▮  EXTREME
+```
+- 4 bars total, filled based on level
+- Colored in difficulty accent
+- Unfilled bars use `border` color
+
+**Progress Bar**
+```
+0 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 120
+        ▓▓▓▓▓▓▓▓▓▓▓░░░░░░░░░░░░
+              47 / 120
+```
+- 4pt height, sharp edges (no border radius)
+- Fill color = difficulty accent
+- Track color = `border`
+- Min/max labels at edges
+
+**Section Dividers**
+- 1pt horizontal line in `border` color
+- Full width minus horizontal padding
+- No decorative elements
+
+---
+
+### What We Don't Do
+
+| Anti-Pattern | Why |
+|--------------|-----|
+| Rounded corners | Too soft. We're sharp and direct. |
+| Shadows/elevation | Flat design. Honest surfaces. |
+| Gradients | Unnecessary decoration. |
+| Icons for everything | Text is clearer. Icons only where universal (gear for settings). |
+| Animations for delight | Motion only for state changes, never for decoration. |
+| Light mode | Dark mode reinforces focus and seriousness. |
+| Emoji | Brand voice is direct, not playful. |
+| Celebration states | No confetti. No "Great job!" The work is its own reward. |
+
+---
+
+### Dashboard Layout
+
+```
+┌─────────────────────────────────────────────┐
+│                                             │
+│  LOCKEDIN                              [⚙]  │
+│                                             │
+│                                             │
+│                                             │
+│                   47                        │
+│                MINUTES                      │
+│                                             │
+│                 ▮▮▮░                        │
+│                 HARD                        │
+│                                             │
+│                                             │
+│  0 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 120  │
+│              47 / 120                       │
+│                                             │
+│  ─────────────────────────────────────────  │
+│                                             │
+│  BLOCKED                                 4  │
+│                                             │
+└─────────────────────────────────────────────┘
+```
+
+**Hierarchy:**
+1. Balance number (the vault)
+2. Difficulty rank (identity)
+3. Progress bar (context)
+4. Blocked apps (reference)
 
 ---
 

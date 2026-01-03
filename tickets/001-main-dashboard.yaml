@@ -1,0 +1,60 @@
+id: '001'
+type: feature
+title: Build Main Dashboard screen
+priority: P1
+complexity: standard
+status: in_progress
+
+po_notes: |
+  - This IS the app. The dashboard visualizes the core loop.
+  - Must feel immediate and visceral—big balance number, clear progress.
+  - No navigation complexity. One screen. No tabs.
+  - Primary persona: Recovering Scroller (needs constant visibility into balance)
+  - Mock data is fine initially—this unblocks UI iteration before framework integration.
+  - Brand voice: direct, terse. No "Great job!" energy.
+
+description: |
+  Users need to see their bank balance at a glance. That's it.
+  This is the single screen they'll check compulsively. It must communicate:
+  how much time they have left and what's blocked. Nothing more.
+
+acceptance_criteria:
+  - Large, prominent balance display showing minutes remaining (e.g., "47:32")
+  - "minutes left" label below the balance
+  - Progress bar showing balance relative to max (based on difficulty)
+  - Current difficulty mode displayed (e.g., "Difficulty: HARD")
+  - Blocked Apps section showing count and app names
+  - Settings gear icon in navigation bar
+  - Works with hardcoded/mock data initially
+  - Matches brand voice (direct, minimal, no fluff)
+
+technical_notes: |
+  - Use SwiftUI
+  - Create a BankState model or similar to hold:
+    - balance: Int (minutes)
+    - maxBalance: Int (based on difficulty)
+    - difficulty: enum
+  - Use @State or @Observable for now; can migrate to SwiftData later
+  - No HealthKit or FamilyControls integration yet
+
+mockups: |
+  Reference: MVP.md Section 4.2 Main Dashboard
+
+  ┌─────────────────────────────────┐
+  │ LOCKEDIN               ⚙️       │
+  ├─────────────────────────────────┤
+  │                                 │
+  │            47:32                │
+  │         minutes left            │
+  │                                 │
+  │     ████████████░░░░░░░░        │
+  │         47 / 120 min            │
+  │                                 │
+  │      Difficulty: HARD           │
+  │                                 │
+  ├─────────────────────────────────┤
+  │                                 │
+  │  Blocked Apps (4)          ▼    │
+  │  Instagram, TikTok, X, Snap     │
+  │                                 │
+  └─────────────────────────────────┘

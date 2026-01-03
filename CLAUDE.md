@@ -23,7 +23,8 @@ PROPOSAL → PLAN → DEVELOP → VERIFY → REVIEW → APPROVE
 ```
 LockedIn/LockedIn/        # iOS app source
   ├── LockedInApp.swift
-  ├── ContentView.swift
+  ├── Models/
+  ├── Views/
   └── ...
 LockedIn/LockedIn.xcodeproj
 tickets/                  # Ticket definitions (YAML)
@@ -36,12 +37,12 @@ plans/                    # Implementation plans
 # Build
 xcodebuild build -scheme LockedIn \
   -project LockedIn/LockedIn.xcodeproj \
-  -destination 'platform=iOS Simulator,name=iPhone 16,OS=18.2'
+  -destination 'platform=iOS Simulator,name=iPhone 16,OS=18.6'
 
 # Test (must pass before VERIFY phase)
 xcodebuild test -scheme LockedIn \
   -project LockedIn/LockedIn.xcodeproj \
-  -destination 'platform=iOS Simulator,name=iPhone 16,OS=18.2'
+  -destination 'platform=iOS Simulator,name=iPhone 16,OS=18.6'
 ```
 
 ## Key Frameworks

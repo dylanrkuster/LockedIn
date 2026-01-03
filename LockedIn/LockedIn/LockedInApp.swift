@@ -2,31 +2,16 @@
 //  LockedInApp.swift
 //  LockedIn
 //
-//  Created by Dylan Kuster on 1/2/26.
-//
 
 import SwiftUI
-import SwiftData
 
 @main
 struct LockedInApp: App {
-    var sharedModelContainer: ModelContainer = {
-        let schema = Schema([
-            Item.self,
-        ])
-        let modelConfiguration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
-
-        do {
-            return try ModelContainer(for: schema, configurations: [modelConfiguration])
-        } catch {
-            fatalError("Could not create ModelContainer: \(error)")
-        }
-    }()
+    @State private var bankState = BankState.mock
 
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            DashboardView(bankState: bankState)
         }
-        .modelContainer(sharedModelContainer)
     }
 }

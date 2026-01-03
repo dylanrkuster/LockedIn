@@ -3,19 +3,41 @@
 This file tracks current work state across context resets.
 
 ## Current Ticket
-None
+001 - Build Main Dashboard screen
 
 ## Phase
-N/A
+REVIEW (5/6) - GATE
+
+## Complexity
+standard
+
+## Acceptance Criteria
+- [ ] Large, prominent balance display showing minutes remaining (e.g., "47:32")
+- [ ] "minutes left" label below the balance
+- [ ] Progress bar showing balance relative to max (based on difficulty)
+- [ ] Current difficulty mode displayed (e.g., "Difficulty: HARD")
+- [ ] Blocked Apps section showing count and app names
+- [ ] Settings gear icon in navigation bar
+- [ ] Works with hardcoded/mock data initially
+- [ ] Matches brand voice (direct, minimal, no fluff)
 
 ## Key Decisions
 - (none yet)
 
 ## Affected Areas
-- (none yet)
+- LockedIn/LockedIn/ (main app source)
 
 ## Files Modified
-- (none yet)
+- LockedInApp.swift (updated)
+- CLAUDE.md (updated OS version)
+- Models/Difficulty.swift (new)
+- Models/BankState.swift (new)
+- Views/DashboardView.swift (new)
+- Views/Components/BalanceDisplay.swift (new)
+- Views/Components/ProgressBar.swift (new)
+- Views/Components/BlockedAppsSection.swift (new)
+- Item.swift (deleted)
+- ContentView.swift (deleted)
 
 ## Blockers
 None
