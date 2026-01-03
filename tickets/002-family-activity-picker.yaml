@@ -1,0 +1,69 @@
+id: '002'
+type: feature
+title: FamilyActivityPicker Integration
+priority: P1
+complexity: standard
+
+po_notes: |
+  - Gateway to entire blocking flow. Can't block what we can't select.
+  - Fixes broken EDIT button on dashboard.
+  - Component reused in onboarding (Screen 2: "Select Your Poison").
+  - Requires FamilyControls entitlement and authorization flow.
+  - No actual blocking in this ticket—just selection and persistence.
+  - Real ApplicationTokens replace mock string array.
+
+description: |
+  The EDIT button in the BLOCKED section does nothing. Users need to
+  select which apps to block using Apple's FamilyActivityPicker.
+
+  This is infrastructure for the core loop. Without app selection,
+  there's nothing to block.
+
+acceptance_criteria:
+  - Tap EDIT in BLOCKED section opens FamilyActivityPicker sheet
+  - User can select/deselect apps from the picker
+  - Selected apps persist across app launches (UserDefaults)
+  - Dashboard displays real app names (not mock data)
+  - Handles FamilyControls authorization (request if needed)
+  - Graceful handling if user denies authorization
+  - Empty state when no apps selected
+
+technical_notes: |
+  Frameworks required:
+  - FamilyControls (AuthorizationCenter, FamilyActivityPicker)
+  - ManagedSettings (ApplicationToken storage)
+
+  Key considerations:
+  - ApplicationToken is opaque—cannot extract app name directly
+  - FamilyActivitySelection contains apps, categories, webDomains
+  - Must request FamilyControls.AuthorizationCenter.shared.requestAuthorization()
+  - Store selection using Codable or @AppStorage with RawRepresentable
+
+  Data model changes:
+  - BankState.blockedApps: [String] → FamilyActivitySelection
+  - Need to display app tokens in UI (system provides displayName)
+
+out_of_scope:
+  - Actual app blocking (ManagedSettings shield)
+  - DeviceActivity monitoring
+  - Onboarding flow integration
+  - Settings screen
+
+dependencies:
+  - Ticket 001 (Main Dashboard) - COMPLETED
+
+estimated_files:
+  - LockedIn/Models/BankState.swift (modify)
+  - LockedIn/Views/Components/BlockedAppsSection.swift (modify)
+  - LockedIn/Services/FamilyControlsManager.swift (new)
+  - LockedIn/LockedIn.entitlements (add FamilyControls)
+  - project.pbxproj (entitlements, framework linking)
+
+test_scenarios:
+  - First launch: authorization prompt appears
+  - Authorization granted: picker works
+  - Authorization denied: show explanation, offer retry
+  - Select 5 apps: all 5 display on dashboard
+  - Select 0 apps: empty state shows
+  - Kill and relaunch: selection persists
+  - Change selection: updates immediately
