@@ -37,10 +37,6 @@ final class FamilyControlsManager {
         !selection.categoryTokens.isEmpty
     }
 
-    // MARK: - Private
-
-    private let selectionKey = "blockedAppsSelection"
-
     // MARK: - Init
 
     init() {
@@ -79,14 +75,16 @@ final class FamilyControlsManager {
     private func saveSelection() {
         do {
             let data = try PropertyListEncoder().encode(selection)
-            UserDefaults.standard.set(data, forKey: selectionKey)
+            // Save to SharedState for extension access
+            SharedState.selectionData = data
+            SharedState.synchronize()
         } catch {
             print("Failed to save selection: \(error)")
         }
     }
 
     private func loadSelection() {
-        guard let data = UserDefaults.standard.data(forKey: selectionKey) else { return }
+        guard let data = SharedState.selectionData else { return }
         do {
             selection = try PropertyListDecoder().decode(FamilyActivitySelection.self, from: data)
         } catch {
