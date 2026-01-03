@@ -47,6 +47,76 @@ struct Transaction: Identifiable {
 // MARK: - Mock Data
 
 extension Transaction {
+    /// Extended mock data for design review (multiple days)
+    static var designReviewMock: [Transaction] {
+        let now = Date()
+        let calendar = Calendar.current
+
+        // Today - net +20
+        let today: [Transaction] = [
+            Transaction(id: UUID(), amount: 30, source: "Run",
+                       timestamp: calendar.date(bySettingHour: 7, minute: 15, second: 0, of: now)!),
+            Transaction(id: UUID(), amount: -8, source: "Instagram",
+                       timestamp: calendar.date(bySettingHour: 9, minute: 30, second: 0, of: now)!),
+            Transaction(id: UUID(), amount: -12, source: "TikTok",
+                       timestamp: calendar.date(bySettingHour: 12, minute: 45, second: 0, of: now)!),
+            Transaction(id: UUID(), amount: 15, source: "HIIT",
+                       timestamp: calendar.date(bySettingHour: 17, minute: 30, second: 0, of: now)!),
+            Transaction(id: UUID(), amount: -5, source: "X",
+                       timestamp: calendar.date(bySettingHour: 20, minute: 15, second: 0, of: now)!),
+        ]
+
+        // Yesterday - net +28
+        let yesterday = calendar.date(byAdding: .day, value: -1, to: now)!
+        let yesterdayTx: [Transaction] = [
+            Transaction(id: UUID(), amount: 45, source: "Cycling",
+                       timestamp: calendar.date(bySettingHour: 6, minute: 30, second: 0, of: yesterday)!),
+            Transaction(id: UUID(), amount: -15, source: "Instagram",
+                       timestamp: calendar.date(bySettingHour: 10, minute: 0, second: 0, of: yesterday)!),
+            Transaction(id: UUID(), amount: -22, source: "YouTube",
+                       timestamp: calendar.date(bySettingHour: 14, minute: 30, second: 0, of: yesterday)!),
+            Transaction(id: UUID(), amount: 20, source: "Strength",
+                       timestamp: calendar.date(bySettingHour: 18, minute: 0, second: 0, of: yesterday)!),
+        ]
+
+        // 2 days ago - net +12
+        let twoDaysAgo = calendar.date(byAdding: .day, value: -2, to: now)!
+        let twoDaysAgoTx: [Transaction] = [
+            Transaction(id: UUID(), amount: 60, source: "Run",
+                       timestamp: calendar.date(bySettingHour: 5, minute: 45, second: 0, of: twoDaysAgo)!),
+            Transaction(id: UUID(), amount: -30, source: "TikTok",
+                       timestamp: calendar.date(bySettingHour: 11, minute: 15, second: 0, of: twoDaysAgo)!),
+            Transaction(id: UUID(), amount: -18, source: "Instagram",
+                       timestamp: calendar.date(bySettingHour: 15, minute: 30, second: 0, of: twoDaysAgo)!),
+        ]
+
+        // 3 days ago - net +20
+        let threeDaysAgo = calendar.date(byAdding: .day, value: -3, to: now)!
+        let threeDaysAgoTx: [Transaction] = [
+            Transaction(id: UUID(), amount: 25, source: "Walk",
+                       timestamp: calendar.date(bySettingHour: 7, minute: 0, second: 0, of: threeDaysAgo)!),
+            Transaction(id: UUID(), amount: 35, source: "Yoga",
+                       timestamp: calendar.date(bySettingHour: 18, minute: 30, second: 0, of: threeDaysAgo)!),
+            Transaction(id: UUID(), amount: -40, source: "Netflix",
+                       timestamp: calendar.date(bySettingHour: 21, minute: 0, second: 0, of: threeDaysAgo)!),
+        ]
+
+        // 5 days ago - net +30
+        let fiveDaysAgo = calendar.date(byAdding: .day, value: -5, to: now)!
+        let fiveDaysAgoTx: [Transaction] = [
+            Transaction(id: UUID(), amount: 90, source: "Run",
+                       timestamp: calendar.date(bySettingHour: 6, minute: 0, second: 0, of: fiveDaysAgo)!),
+            Transaction(id: UUID(), amount: -25, source: "X",
+                       timestamp: calendar.date(bySettingHour: 12, minute: 0, second: 0, of: fiveDaysAgo)!),
+            Transaction(id: UUID(), amount: -15, source: "Reddit",
+                       timestamp: calendar.date(bySettingHour: 16, minute: 45, second: 0, of: fiveDaysAgo)!),
+            Transaction(id: UUID(), amount: -20, source: "Instagram",
+                       timestamp: calendar.date(bySettingHour: 22, minute: 30, second: 0, of: fiveDaysAgo)!),
+        ]
+
+        return today + yesterdayTx + twoDaysAgoTx + threeDaysAgoTx + fiveDaysAgoTx
+    }
+
     /// Realistic mock data for HARD difficulty (2:1 ratio)
     /// - Workouts: 60 min workout → 30 earned, 30 min workout → 15 earned
     /// - Spending: 1:1 (time spent = minutes deducted)
