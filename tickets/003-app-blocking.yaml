@@ -1,0 +1,122 @@
+id: '003'
+type: feature
+title: App Blocking with DeviceActivity + ManagedSettings
+priority: P0
+complexity: high
+
+po_notes: |
+  - THE magic moment. This is the entire value prop.
+  - Without this, the app is a fancy picker with a number display.
+  - High complexity: requires app extension, app groups, shield config.
+  - Balance decrement happens here (spend side of core loop).
+  - Hard block at zero is the "No Bullshit" tenet in action.
+  - Shield UI should match brutalist aesthetic if customizable.
+
+description: |
+  Selected apps aren't blocked. Users can open TikTok freely despite
+  selecting it. The bank balance is static decoration.
+
+  This ticket implements the spend side of the core loop:
+  Use blocked app -> balance decrements -> hit zero -> BLOCKED.
+
+acceptance_criteria:
+  - Opening a blocked app decrements the bank balance in real-time
+  - At balance = 0, blocked apps show a shield (cannot be used)
+  - Shield displays "locked out" messaging (brutalist, not friendly)
+  - When balance > 0, shield is removed and apps work normally
+  - Balance changes persist across app launches
+  - Extension runs in background (monitors even when app closed)
+
+technical_notes: |
+  Frameworks required:
+  - DeviceActivity (DeviceActivityMonitor extension)
+  - ManagedSettings (ManagedSettingsStore, ShieldConfiguration)
+  - FamilyControls (already integrated)
+
+  Architecture:
+  1. DeviceActivityMonitor extension (NEW TARGET)
+     - Runs as separate process
+     - Receives interval callbacks (start/end of monitoring)
+     - Cannot directly update main app UI
+
+  2. App Groups (NEW)
+     - Share data between main app and extension
+     - UserDefaults(suiteName: "group.usdk.LockedIn")
+     - Store: balance, difficulty, selected apps
+
+  3. ManagedSettingsStore
+     - Apply shield: store.shield.applications = selectedApps
+     - Remove shield: store.shield.applications = nil
+     - Shield activates when balance <= 0
+
+  4. ShieldConfigurationExtension (NEW TARGET)
+     - Customizes shield appearance
+     - Match brutalist aesthetic (black bg, white text)
+
+  5. Balance tracking
+     - DeviceActivityReport or polling for usage
+     - Decrement balance based on usage duration
+     - Persist to shared UserDefaults
+
+  Entitlements needed:
+  - com.apple.developer.family-controls (already have)
+  - App Groups capability
+
+  Key challenges:
+  - Extension has limited runtime, must be efficient
+  - Shared state between app and extension requires careful sync
+  - Shield customization has limitations (Apple controls layout)
+  - Real-time updates may need NotificationCenter or polling
+
+out_of_scope:
+  - HealthKit integration (earning minutes)
+  - Onboarding flow
+  - Settings screen changes
+  - Notifications ("5 min remaining")
+
+dependencies:
+  - Ticket 002 (FamilyActivityPicker) - COMPLETED
+  - FamilyControlsManager with persisted selection
+
+estimated_files:
+  new_targets:
+    - DeviceActivityMonitorExtension/
+    - ShieldConfigurationExtension/
+    - ShieldActionExtension/ (optional, for shield buttons)
+
+  main_app:
+    - LockedIn/Services/BlockingManager.swift (new)
+    - LockedIn/Services/SharedState.swift (new, app group access)
+    - LockedIn/Models/BankState.swift (modify, persist to app group)
+    - LockedIn.entitlements (add App Groups)
+    - project.pbxproj (new targets, entitlements)
+
+test_scenarios:
+  - Select apps, open blocked app: balance decrements
+  - Use blocked app for 5 min: balance drops by 5
+  - Balance hits 0: shield appears immediately
+  - Try to open blocked app at 0 balance: shield shown
+  - Manually set balance > 0: shield disappears
+  - Kill main app, open blocked app: still tracked
+  - Relaunch app: balance reflects usage while closed
+  - No apps selected: no monitoring, no decrement
+
+shield_design: |
+  Match brutalist aesthetic:
+
+  ┌─────────────────────────────────┐
+  │                                 │
+  │         YOU'RE LOCKED OUT       │
+  │                                 │
+  │       Balance: 0 minutes        │
+  │                                 │
+  │     Earn more by working out.   │
+  │                                 │
+  │      [ Open LockedIn ]          │
+  │                                 │
+  └─────────────────────────────────┘
+
+  - Pure black background
+  - White text, all caps header
+  - Single CTA to open main app
+  - No dismiss/snooze options
