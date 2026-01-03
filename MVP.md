@@ -1,7 +1,7 @@
 # LockedIn - MVP Vision Document
 
-> **Last Updated:** January 2, 2026
-> **Status:** In Development (Dashboard + App Selection complete)
+> **Last Updated:** January 3, 2026
+> **Status:** In Development (Dashboard + App Selection + Blocking + Activity Tracking complete)
 
 ---
 
@@ -255,11 +255,12 @@ Minimal. One screen. No tabs. Brutalist aesthetic.
 │            47 / 120             │
 │                                 │
 │  ─────────────────────────────  │
-│  ACTIVITY                    ▼  │
+│  ACTIVITY              SEE ALL  │
+│  +15  Run      7:33pm     →47   │
+│  -12  Instagram 7:26pm    →32   │
 │  ─────────────────────────────  │
-│  BLOCKED                     ▼  │
+│  BLOCKED                  EDIT  │
 │  [📷][🎵][𝕏][📘][👻][🎬]       │
-│  EDIT                           │
 └─────────────────────────────────┘
 ```
 
@@ -267,8 +268,8 @@ Minimal. One screen. No tabs. Brutalist aesthetic.
 - **Balance Display:** Massive number (120pt) with "REMAINING" label
 - **Difficulty Badge:** Rank bars + ratio display (e.g., "HARD · 2:1")
 - **Progress Bar:** Sharp edges, difficulty-colored fill, 0/max labels
-- **Activity Section:** Collapsible transaction history (8 most recent)
-- **Blocked Section:** Collapsible, shows app icons horizontally, EDIT button
+- **Activity Section:** Always expanded, shows 5 most recent with running balance, "SEE ALL" leads to full history
+- **Blocked Section:** Always expanded, shows app icons horizontally, "EDIT" button in header
 
 ### 4.3 Settings Screen
 
@@ -381,13 +382,14 @@ UserSettings (future)
 **Workout Sync (Pull from HealthKit):**
 1. App checks HealthKit for new workouts on:
    - App foreground
-   - Background refresh (every 15 min)
+   - Background observation (HKObserverQuery)
    - Manual pull-to-refresh
-2. For each new workout since last sync:
+2. Lookback window: **4 hours** (prevents historical workout abuse on fresh install)
+3. For each new workout not already processed:
    - Calculate earned minutes based on difficulty
    - Add to bank (capped at max)
-   - Log to WorkoutLog
-   - Send notification
+   - Log transaction with workout type name
+   - Duplicate prevention via processed workout ID tracking
 
 **Usage Tracking:**
 - DeviceActivity reports usage in real-time
@@ -780,28 +782,28 @@ LockedIn's visual design embodies **functional beauty through restraint**. Every
 - Track color = `border`
 - Min/max labels at edges
 
-**Activity Section (Collapsible)**
+**Activity Section (Always Expanded)**
 ```
-ACTIVITY                           ▼
-+15   Workout                  7:33pm
--12   Instagram                7:26pm
--25   X                        6:53pm
-+30   Workout                  5:38pm
+ACTIVITY                      SEE ALL
++15   Run             7:33pm    →47
+-12   Instagram       7:26pm    →32
+-25   X               6:53pm    →44
++30   HIIT            5:38pm    →69
 ```
-- Shows 8 most recent transactions
-- Earned amounts in accent color, spent in tertiary
-- 12-hour timestamps (h:mma format)
-- Full row tappable to expand/collapse
+- Shows 5 most recent transactions (ledger format)
+- Each row: amount, source, timestamp, resulting balance (→XX)
+- Earned amounts in accent color, spent in secondary
+- "SEE ALL" button leads to full ActivityHistoryView
+- Full history grouped by day with daily net summaries
 
-**Blocked Apps Section (Collapsible)**
+**Blocked Apps Section (Always Expanded)**
 ```
-BLOCKED                            ▼
+BLOCKED                          EDIT
 [📷][🎵][𝕏][📘][👻][🎬] +2
-EDIT
 ```
 - Horizontal row of app icons (28pt, max 8 visible)
 - "+N" overflow indicator if more than 8 apps
-- EDIT button opens FamilyActivityPicker
+- "EDIT" button in header opens FamilyActivityPicker
 - Icons retain original colors (brand recognition)
 
 **Section Dividers**
@@ -845,11 +847,12 @@ EDIT
 │              47 / 120                       │
 │                                             │
 │  ─────────────────────────────────────────  │
-│  ACTIVITY                                ▼  │
+│  ACTIVITY                          SEE ALL  │
+│  +15  Run           7:33pm           →47    │
+│  -12  Instagram     7:26pm           →32    │
 │  ─────────────────────────────────────────  │
-│  BLOCKED                                 ▼  │
+│  BLOCKED                              EDIT  │
 │  [📷][🎵][𝕏][📘][👻][🎬]                   │
-│  EDIT                                       │
 │                                             │
 └─────────────────────────────────────────────┘
 ```
@@ -870,24 +873,28 @@ EDIT
 - [x] Balance display with "REMAINING" label
 - [x] Difficulty badge with rank bars and ratio
 - [x] Progress bar with accent colors
-- [x] Activity section with transaction history
+- [x] Activity section with transaction history (unified ledger format)
+- [x] Activity history view with day grouping and daily net
 - [x] Blocked apps section with horizontal icons
 - [x] FamilyControls authorization flow
 - [x] FamilyActivityPicker integration
 - [x] App selection persistence (UserDefaults)
+- [x] App blocking with ManagedSettings + DeviceActivity
+- [x] Shield configuration for blocked apps
+- [x] HealthKit integration (earning minutes)
+- [x] Workout observation (HKObserverQuery)
+- [x] Transaction persistence (7-day retention)
+- [x] Real-time balance decrement (minute-by-minute)
+- [x] Cross-process state sync via App Groups
 
 ### In Progress
 - [ ] Settings screen
-- [ ] HealthKit integration (earning minutes)
-- [ ] Actual app blocking (ManagedSettings)
-- [ ] Hard block screen
+- [ ] Onboarding flow
 
 ### Not Started
-- [ ] Onboarding flow
-- [ ] DeviceActivity monitoring
 - [ ] Notifications
-- [ ] Real-time balance decrement
+- [ ] Hard block screen (custom shield UI)
 
 ---
 
-*Document authored by Claude. Updated January 2, 2026.*
+*Document authored by Claude. Updated January 3, 2026.*
