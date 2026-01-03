@@ -9,6 +9,7 @@ import SwiftUI
 
 struct DashboardView: View {
     let bankState: BankState
+    @State private var familyControlsManager = FamilyControlsManager()
 
     var body: some View {
         ZStack {
@@ -60,12 +61,9 @@ struct DashboardView: View {
                     divider
 
                     // Blocked apps
-                    BlockedAppsSection(apps: bankState.blockedApps) {
-                        // TODO: Present FamilyActivityPicker when FamilyControls is integrated
-                        print("Edit blocked apps tapped")
-                    }
-                    .padding(.horizontal, AppSpacing.lg)
-                    .padding(.vertical, AppSpacing.md)
+                    BlockedAppsSection(manager: familyControlsManager)
+                        .padding(.horizontal, AppSpacing.lg)
+                        .padding(.vertical, AppSpacing.md)
                 }
             }
         }
@@ -110,7 +108,6 @@ struct DashboardView: View {
     DashboardView(bankState: BankState(
         balance: 5,
         difficulty: .extreme,
-        blockedApps: ["Instagram", "TikTok"],
         transactions: [
             Transaction(id: UUID(), amount: -15, source: "TikTok", timestamp: Date().addingTimeInterval(-300))
         ]
@@ -121,7 +118,6 @@ struct DashboardView: View {
     DashboardView(bankState: BankState(
         balance: 240,
         difficulty: .easy,
-        blockedApps: ["Instagram"],
         transactions: Transaction.mock
     ))
 }
