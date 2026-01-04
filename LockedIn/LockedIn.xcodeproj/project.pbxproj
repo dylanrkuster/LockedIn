@@ -96,6 +96,11 @@
 			path = LockedIn;
 			sourceTree = "<group>";
 		};
+		FC7923002F09000000A66398 /* Shared */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = Shared;
+			sourceTree = "<group>";
+		};
 		FC7922C82F08B62B00A66398 /* DeviceActivityMonitorExtension */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
@@ -161,6 +166,7 @@
 		FC79220E2F08790C00A66398 = {
 			isa = PBXGroup;
 			children = (
+				FC7923002F09000000A66398 /* Shared */,
 				FC7922192F08790C00A66398 /* LockedIn */,
 				FC7922C82F08B62B00A66398 /* DeviceActivityMonitorExtension */,
 				FC7922E02F08B77C00A66398 /* ShieldConfigurationExtension */,
@@ -211,6 +217,7 @@
 				FC7922F82F08B7A400A66398 /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
+				FC7923002F09000000A66398 /* Shared */,
 				FC7922192F08790C00A66398 /* LockedIn */,
 			);
 			name = LockedIn;
@@ -233,6 +240,7 @@
 			dependencies = (
 			);
 			fileSystemSynchronizedGroups = (
+				FC7923002F09000000A66398 /* Shared */,
 				FC7922C82F08B62B00A66398 /* DeviceActivityMonitorExtension */,
 			);
 			name = DeviceActivityMonitorExtension;
@@ -255,6 +263,7 @@
 			dependencies = (
 			);
 			fileSystemSynchronizedGroups = (
+				FC7923002F09000000A66398 /* Shared */,
 				FC7922E02F08B77C00A66398 /* ShieldConfigurationExtension */,
 			);
 			name = ShieldConfigurationExtension;
@@ -277,6 +286,7 @@
 			dependencies = (
 			);
 			fileSystemSynchronizedGroups = (
+				FC7923002F09000000A66398 /* Shared */,
 				FC7922F22F08B7A400A66398 /* ShieldActionExtension */,
 			);
 			name = ShieldActionExtension;

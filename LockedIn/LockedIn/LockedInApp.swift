@@ -17,6 +17,9 @@ struct LockedInApp: App {
         WindowGroup {
             DashboardView(bankState: bankState, familyControlsManager: familyControlsManager)
                 .onAppear {
+                    // Merge any pending transactions from extensions
+                    SharedState.mergePendingTransactions()
+
                     // Write marker for extension cross-process test
                     SharedState.debugMainAppMarker = "app_\(Date().timeIntervalSince1970)"
                     SharedState.synchronize()
@@ -117,6 +120,9 @@ struct LockedInApp: App {
     // MARK: - State Reload
 
     private func reloadStateFromShared() {
+        // Merge any pending transactions from extensions before reading state
+        SharedState.mergePendingTransactions()
+
         // Reload balance from SharedState (may have changed by DeviceActivityMonitor extension)
         bankState.syncFromSharedState()
 

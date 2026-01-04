@@ -11,6 +11,7 @@ struct DashboardView: View {
     let bankState: BankState
     @Bindable var familyControlsManager: FamilyControlsManager
     @State private var showActivityHistory = false
+    @State private var showDebugLogs = false
 
     var body: some View {
         NavigationStack {
@@ -79,6 +80,9 @@ struct DashboardView: View {
                     currentBalance: bankState.balance
                 )
             }
+            .navigationDestination(isPresented: $showDebugLogs) {
+                DebugLogView()
+            }
         }
         .preferredColorScheme(.dark)
     }
@@ -93,7 +97,7 @@ struct DashboardView: View {
             Spacer()
 
             Button {
-                // Settings - not implemented
+                showDebugLogs = true
             } label: {
                 Image(systemName: "gearshape")
                     .font(.system(size: 18, weight: .light))
@@ -101,7 +105,7 @@ struct DashboardView: View {
                     .frame(width: 44, height: 44)
                     .contentShape(Rectangle())
             }
-            .accessibilityLabel("Settings")
+            .accessibilityLabel("Debug Logs")
         }
     }
 

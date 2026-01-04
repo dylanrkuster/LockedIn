@@ -1,0 +1,280 @@
+id: '005'
+type: bug
+title: Activity Tracking Fails Silently After Extended Use (~10 min)
+priority: P0
+complexity: large
+
+po_notes: |
+  - P0: Directly violates "Earn Your Scroll" tenet. Users get free screen time.
+  - Core loop integrity is compromised. Trust in the system breaks.
+  - This is an investigation + hardening ticket, not just a fix.
+  - Architecture has zero observability. We're flying blind on extension health.
+  - Silent failures everywhere. System designed to fail without telling anyone.
+  - Fix must make tracking bulletproof, not just patch the symptom.
+
+description: |
+  DeviceActivityMonitor stops logging threshold events after ~10 minutes of
+  continuous blocked app usage. Balance stops decrementing. Users continue
+  using blocked apps with no penalty.
+
+  Restarting the app does not fix it. The extension appears to stop firing
+  callbacks entirely.
+
+  This is a core loop failure. The workout-to-screentime exchange is broken.
+
+# ═══════════════════════════════════════════════════════════════════
+# OBSERVED BEHAVIOR
+# ═══════════════════════════════════════════════════════════════════
+
+observed_behavior: |
+  1. User opens a blocked app (e.g., Instagram)
+  2. Balance decrements correctly for first ~10 minutes
+  3. After ~10 minutes, threshold events stop firing
+  4. Balance freezes at current value
+  5. User continues using blocked app indefinitely with no penalty
+  6. Closing and reopening LockedIn does not restore tracking
+  7. Balance remains at frozen value on relaunch
+
+  **Reproduction confidence:** Intermittent but consistent pattern observed
+  multiple times. Always involves extended continuous sessions.
+
+# ═══════════════════════════════════════════════════════════════════
+# ARCHITECTURE ANALYSIS (Root Cause Candidates)
+# ═══════════════════════════════════════════════════════════════════
+
+root_cause_candidates:
+  high_likelihood:
+    - name: "iOS extension throttling/suspension"
+      description: |
+        DeviceActivity extensions have limited execution time. iOS may suspend
+        or throttle extensions that run continuous callbacks for extended periods.
+        After ~10 minutes of continuous threshold events, iOS may deprioritize
+        the extension's process.
+      investigation: |
+        - Add persistent logging (file-based) in extension to detect if callbacks stop
+        - Check if eventDidReachThreshold() stops being called vs. stops executing properly
+        - Research iOS extension execution limits for DeviceActivityMonitor
+
+    - name: "UserDefaults.synchronize() silent failure"
+      description: |
+        Every balance update calls synchronize(). Under disk pressure or memory
+        constraints, this can fail silently. The extension believes it wrote data
+        but persistence failed. Next callback reads stale state.
+      investigation: |
+        - Check synchronize() return value (it's deprecated but may still fail)
+        - Add file-based fallback logging to detect write failures
+        - Monitor disk/memory state during extended sessions
+
+    - name: "Threshold event exhaustion"
+      description: |
+        BlockingManager registers 240 events (minute_1 through minute_240).
+        iOS may have internal limits on active threshold events. After processing
+        many events, the system may stop delivering new ones.
+      investigation: |
+        - Check if iOS has documented limits on DeviceActivityEvent count
+        - Try reducing event count and see if failure point changes
+        - Log which minute events fire vs. which are expected
+
+  medium_likelihood:
+    - name: "App Groups accessibility degradation"
+      description: |
+        SharedState falls back to UserDefaults.standard if App Groups fails.
+        This creates split-brain state: extension writes to wrong location,
+        main app reads from correct location. Balance appears frozen.
+      investigation: |
+        - Add health check for App Groups accessibility in extension
+        - Log when fallback to .standard occurs
+        - Compare UserDefaults.standard vs. suite on failure
+
+    - name: "JSON decode corruption cascade"
+      description: |
+        All SharedState reads use try? which swallows errors. If any value
+        becomes corrupted, subsequent reads return nil/empty and corrupted
+        state persists. Could affect usedMinutesToday causing skip logic
+        to always trigger.
+      investigation: |
+        - Add explicit error logging on decode failures
+        - Implement validation on critical values
+        - Add checksum or version field to detect corruption
+
+    - name: "Race condition on concurrent access"
+      description: |
+        Extension writes balance while main app reads transactions.
+        No locking mechanism in SharedState. UserDefaults has internal
+        protection but Swift property getters don't. Could read mid-write state.
+      investigation: |
+        - Review all concurrent access patterns
+        - Add logging around reads/writes with timestamps
+        - Consider adding file-based mutex
+
+  low_likelihood:
+    - name: "Memory pressure killing extension"
+      description: |
+        Extension allocates new event dictionaries on each monitoring restart.
+        Over long sessions with restarts, memory could accumulate. iOS may
+        terminate the extension under memory pressure.
+      investigation: |
+        - Profile extension memory usage during extended sessions
+        - Add cleanup of old event arrays on restart
+        - Monitor iOS memory warnings in extension
+
+# ═══════════════════════════════════════════════════════════════════
+# CURRENT ARCHITECTURE GAPS
+# ═══════════════════════════════════════════════════════════════════
+
+architecture_gaps:
+  observability:
+    - "Zero logging in extension - no way to know if callbacks fire"
+    - "No health checks - main app can't verify extension is alive"
+    - "debugExtensionMessage is only written, never analyzed automatically"
+    - "No crash reporting or analytics in extensions"
+
+  error_handling:
+    - "All try? operations swallow errors silently"
+    - "synchronize() result not checked"
+    - "No fallback or recovery on write failures"
+    - "assertionFailure on App Groups fail only triggers in debug"
+
+  resilience:
+    - "No mechanism to detect tracking stopped"
+    - "No automatic restart of monitoring if it fails"
+    - "No verification that registered events are being delivered"
+    - "No heartbeat or watchdog pattern"
+
+  data_integrity:
+    - "No checksum on persisted data"
+    - "No version field to detect schema changes"
+    - "Balance and transaction written separately (non-atomic)"
+    - "Pending transactions have no deduplication on merge"
+
+# ═══════════════════════════════════════════════════════════════════
+# REQUIRED FIXES
+# ═══════════════════════════════════════════════════════════════════
+
+required_fixes:
+  phase_1_investigation:
+    priority: immediate
+    items:
+      - title: "Add persistent file-based logging in extension"
+        description: |
+          Write logs to App Group container file, not just debugExtensionMessage.
+          Log every eventDidReachThreshold() call with timestamp, minute, balance.
+          This survives extension restarts and can be read by main app.
+
+      - title: "Add extension heartbeat"
+        description: |
+          Write timestamp to shared state every time extension fires.
+          Main app can check "last extension activity" and warn if stale.
+
+      - title: "Reproduce and capture logs"
+        description: |
+          Use new logging to reproduce the 10-minute failure case.
+          Determine if callbacks stop firing or if processing fails.
+
+  phase_2_hardening:
+    priority: after_investigation
+    items:
+      - title: "Add explicit error handling"
+        description: |
+          Replace try? with do-catch and log failures.
+          Check synchronize() result where possible.
+          Fail loudly, not silently.
+
+      - title: "Add health check in main app"
+        description: |
+          On foreground, verify:
+          - App Groups accessible
+          - Extension heartbeat recent
+          - Balance reasonable (not corrupted)
+          - Decode of all critical values succeeds
+
+      - title: "Implement monitoring restart watchdog"
+        description: |
+          If extension heartbeat stale for >2 minutes while isMonitoring=true,
+          trigger automatic monitoring restart.
+
+      - title: "Add data validation"
+        description: |
+          Validate balance >= 0, usedMinutesToday >= 0, etc.
+          Reject obviously corrupted values.
+          Log and alert on validation failures.
+
+  phase_3_resilience:
+    priority: post_launch
+    items:
+      - title: "Atomic balance+transaction writes"
+        description: |
+          Consider single serialized object for related data.
+          Or implement proper transaction semantics.
+
+      - title: "Implement backup/restore for balance"
+        description: |
+          Keychain already has some data. Formalize as backup.
+          If primary storage corrupted, restore from Keychain.
+
+      - title: "Add monitoring verification"
+        description: |
+          After startMonitoring(), verify events are actually registered.
+          Periodic check that expected events match system state.
+
+# ═══════════════════════════════════════════════════════════════════
+# ACCEPTANCE CRITERIA
+# ═══════════════════════════════════════════════════════════════════
+
+acceptance_criteria:
+  # Investigation
+  - File-based logging exists and captures all extension activity
+  - Root cause of ~10 minute failure is identified and documented
+  - Reproduction steps are documented if possible
+
+  # Observability
+  - Main app can view extension logs
+  - Extension heartbeat visible in debug/settings
+  - Stale heartbeat triggers visible warning
+
+  # Error Handling
+  - All silent try? replaced with logged error handling
+  - Write failures are logged and detectable
+  - App Groups fallback logs warning
+
+  # Resilience
+  - Extended sessions (30+ min) do not lose tracking
+  - App restart restores tracking if it failed
+  - Monitoring auto-restarts if extension heartbeat stale
+
+  # Data Integrity
+  - Balance cannot become corrupted without detection
+  - Corrupted state triggers recovery, not silent failure
+
+# ═══════════════════════════════════════════════════════════════════
+# TEST SCENARIOS
+# ═══════════════════════════════════════════════════════════════════
+
+test_scenarios:
+  extended_use:
+    - "Use blocked app for 30 continuous minutes: Balance decrements fully"
+    - "Use blocked app for 60 continuous minutes: No tracking gaps"
+    - "Use blocked app, lock phone 10 min, unlock, continue: Tracking resumes"
+
+  failure_recovery:
+    - "Simulate App Groups failure: Warning logged, tracking continues"
+    - "Extension crashes mid-session: Monitoring restarts automatically"
+    - "UserDefaults write fails: Error logged, next write retries"
+
+  observability:
+    - "View extension logs from main app: Recent activity visible"
+    - "Extension stale for 3 min: Warning appears in app"
+    - "Force kill extension: Main app detects and restarts monitoring"
+
+# ═══════════════════════════════════════════════════════════════════
+# OUT OF SCOPE
+# ═══════════════════════════════════════════════════════════════════
+
+out_of_scope:
+  - User-facing analytics dashboard for extension health
+  - Cloud-based error reporting (Sentry, Crashlytics)
+  - Refactoring entire SharedState architecture
+  - Adding unit tests (separate ticket)
+
+dependencies:
+  - "Ticket 004 (Activity Tracking) - COMPLETED"

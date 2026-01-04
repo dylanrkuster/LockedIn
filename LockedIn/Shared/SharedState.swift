@@ -12,14 +12,25 @@ import Foundation
 enum SharedState {
     static let suiteName = "group.usdk.LockedIn"
 
-    private static var defaults: UserDefaults {
+    // MARK: - Cached Instances (Memory Optimization)
+
+    /// Single UserDefaults instance per process (was creating new instance on every access)
+    private static let defaults: UserDefaults = {
         guard let suite = UserDefaults(suiteName: suiteName) else {
-            // This should NEVER happen if App Groups is properly configured
             assertionFailure("App Groups UserDefaults not accessible!")
             return .standard
         }
         return suite
-    }
+    }()
+
+    /// Reusable JSON decoder (avoid allocation per decode)
+    private static let jsonDecoder = JSONDecoder()
+
+    /// Reusable JSON encoder (avoid allocation per encode)
+    private static let jsonEncoder = JSONEncoder()
+
+    /// Reusable PropertyList decoder for FamilyActivitySelection
+    static let plistDecoder = PropertyListDecoder()
 
     /// Check if App Groups is properly accessible (use for debugging)
     static var isAppGroupAccessible: Bool {
@@ -40,8 +51,8 @@ enum SharedState {
         set { defaults.set(newValue, forKey: Keys.balance) }
     }
 
-    /// Starting balance for new users (60 minutes)
-    static let defaultStartingBalance = 60
+    /// Starting balance for new users (TEMP: 2 minutes for testing)
+    static let defaultStartingBalance = 2
 
     // MARK: - Difficulty
 
@@ -87,31 +98,86 @@ enum SharedState {
     // MARK: - Transactions
 
     /// Persisted transaction history (7-day rolling window)
+    /// Main app reads this; includes any pending transactions from extensions.
     static var transactions: [TransactionRecord] {
         get {
-            guard let data = defaults.data(forKey: Keys.transactions),
-                  let decoded = try? JSONDecoder().decode([TransactionRecord].self, from: data)
-            else { return [] }
-            return decoded
+            var result: [TransactionRecord] = []
+
+            // Get main transactions
+            if let data = defaults.data(forKey: Keys.transactions),
+               let decoded = try? jsonDecoder.decode([TransactionRecord].self, from: data) {
+                result = decoded
+            }
+
+            // Include pending transactions (from extensions)
+            result.append(contentsOf: pendingTransactions)
+
+            return result.sorted { $0.timestamp > $1.timestamp }
         }
         set {
-            // Prune transactions older than 7 days
-            let cutoff = Date().addingTimeInterval(-7 * 24 * 60 * 60)
-            let pruned = newValue.filter { $0.timestamp > cutoff }
-            if let encoded = try? JSONEncoder().encode(pruned) {
+            // Only prune when array is large (reduces filter overhead)
+            let toEncode: [TransactionRecord]
+            if newValue.count > 500 {
+                let cutoff = Date().addingTimeInterval(-7 * 24 * 60 * 60)
+                toEncode = newValue.filter { $0.timestamp > cutoff }
+            } else {
+                toEncode = newValue
+            }
+            if let encoded = try? jsonEncoder.encode(toEncode) {
                 defaults.set(encoded, forKey: Keys.transactions)
             }
         }
     }
 
-    /// Append a transaction (automatically persists and prunes)
-    /// Note: This is not atomic across processes. To avoid race conditions,
-    /// the extension should only write spend transactions and the main app
-    /// should only write earn transactions.
+    /// Pending transactions written by extensions (not yet merged)
+    private static var pendingTransactions: [TransactionRecord] {
+        get {
+            guard let data = defaults.data(forKey: Keys.pendingTransactions),
+                  let decoded = try? jsonDecoder.decode([TransactionRecord].self, from: data)
+            else { return [] }
+            return decoded
+        }
+        set {
+            if let encoded = try? jsonEncoder.encode(newValue) {
+                defaults.set(encoded, forKey: Keys.pendingTransactions)
+            }
+        }
+    }
+
+    /// Append a transaction efficiently (for extensions).
+    /// Uses a small pending array to avoid decoding the full transaction history.
     static func appendTransaction(_ record: TransactionRecord) {
-        var current = transactions
-        current.append(record)
-        transactions = current
+        var pending = pendingTransactions
+        pending.append(record)
+        pendingTransactions = pending
+        synchronize()
+    }
+
+    /// Merge pending transactions into main array (call from main app on foreground).
+    /// Also performs 7-day pruning.
+    static func mergePendingTransactions() {
+        let pending = pendingTransactions
+        guard !pending.isEmpty else { return }
+
+        // Read main transactions directly (skip pending in getter)
+        var main: [TransactionRecord] = []
+        if let data = defaults.data(forKey: Keys.transactions),
+           let decoded = try? jsonDecoder.decode([TransactionRecord].self, from: data) {
+            main = decoded
+        }
+
+        // Merge and prune
+        main.append(contentsOf: pending)
+        let cutoff = Date().addingTimeInterval(-7 * 24 * 60 * 60)
+        let pruned = main.filter { $0.timestamp > cutoff }
+
+        // Write merged transactions
+        if let encoded = try? jsonEncoder.encode(pruned) {
+            defaults.set(encoded, forKey: Keys.transactions)
+        }
+
+        // Clear pending
+        defaults.removeObject(forKey: Keys.pendingTransactions)
         synchronize()
     }
 
@@ -144,12 +210,12 @@ enum SharedState {
     static var appTokenToName: [String: String] {
         get {
             guard let data = defaults.data(forKey: Keys.appTokenToName),
-                  let decoded = try? JSONDecoder().decode([String: String].self, from: data)
+                  let decoded = try? jsonDecoder.decode([String: String].self, from: data)
             else { return [:] }
             return decoded
         }
         set {
-            if let encoded = try? JSONEncoder().encode(newValue) {
+            if let encoded = try? jsonEncoder.encode(newValue) {
                 defaults.set(encoded, forKey: Keys.appTokenToName)
             }
         }
@@ -160,12 +226,12 @@ enum SharedState {
     static var appUsageRecords: [AppUsageRecord] {
         get {
             guard let data = defaults.data(forKey: Keys.appUsageRecords),
-                  let decoded = try? JSONDecoder().decode([AppUsageRecord].self, from: data)
+                  let decoded = try? jsonDecoder.decode([AppUsageRecord].self, from: data)
             else { return [] }
             return decoded
         }
         set {
-            if let encoded = try? JSONEncoder().encode(newValue) {
+            if let encoded = try? jsonEncoder.encode(newValue) {
                 defaults.set(encoded, forKey: Keys.appUsageRecords)
             }
         }
@@ -239,6 +305,26 @@ enum SharedState {
         set { defaults.set(newValue, forKey: Keys.debugExtensionMessage) }
     }
 
+    /// Extension heartbeat - updated every time extension fires a callback.
+    /// Main app can check this to detect if extension has stopped responding.
+    static var extensionHeartbeat: Date? {
+        get { defaults.object(forKey: Keys.extensionHeartbeat) as? Date }
+        set { defaults.set(newValue, forKey: Keys.extensionHeartbeat) }
+    }
+
+    /// Check if extension heartbeat is stale (>2 minutes old while monitoring is active)
+    static var isExtensionHeartbeatStale: Bool {
+        guard isMonitoring else { return false }
+        guard let heartbeat = extensionHeartbeat else { return true }
+        let staleThreshold: TimeInterval = 2 * 60 // 2 minutes
+        return Date().timeIntervalSince(heartbeat) > staleThreshold
+    }
+
+    /// Update extension heartbeat to current time
+    static func updateHeartbeat() {
+        extensionHeartbeat = Date()
+    }
+
     // MARK: - Keys
 
     private enum Keys {
@@ -248,6 +334,7 @@ enum SharedState {
         static let isMonitoring = "isMonitoring"
         static let lastUsageCheck = "lastUsageCheck"
         static let transactions = "transactions"
+        static let pendingTransactions = "pendingTransactions"
         static let processedWorkouts = "processedWorkouts"
         static let lastHealthKitSync = "lastHealthKitSync"
         static let appTokenToName = "appTokenToName"
@@ -260,6 +347,7 @@ enum SharedState {
         static let debugExtensionRunCount = "debugExtensionRunCount"
         static let debugExtensionMessage = "debugExtensionMessage"
         static let debugMainAppMarker = "debugMainAppMarker"
+        static let extensionHeartbeat = "extensionHeartbeat"
     }
 
     // MARK: - Sync
@@ -277,7 +365,7 @@ enum SharedState {
 
     /// Write app usage data to Keychain (call from report extension)
     static func writeAppUsageToKeychain(_ apps: [String: Int]) {
-        guard let data = try? JSONEncoder().encode(apps) else { return }
+        guard let data = try? jsonEncoder.encode(apps) else { return }
 
         let query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
@@ -307,7 +395,7 @@ enum SharedState {
 
         guard status == errSecSuccess,
               let data = result as? Data,
-              let apps = try? JSONDecoder().decode([String: Int].self, from: data)
+              let apps = try? jsonDecoder.decode([String: Int].self, from: data)
         else { return [:] }
 
         return apps

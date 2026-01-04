@@ -14,6 +14,11 @@ import UIKit
 /// Called by the system when a shielded app is opened.
 class ShieldConfigurationExtension: ShieldConfigurationDataSource {
 
+    // MARK: - Cached Resources (Memory Optimization)
+
+    /// Cached icons by difficulty to avoid repeated UIImage allocation
+    private static var iconCache: [String: UIImage] = [:]
+
     // MARK: - Application Shields
 
     override func configuration(shielding application: Application) -> ShieldConfiguration {
@@ -43,11 +48,12 @@ class ShieldConfigurationExtension: ShieldConfigurationDataSource {
     // MARK: - Configuration Builder
 
     private func makeConfiguration() -> ShieldConfiguration {
-        // Get difficulty color for icon
-        let difficultyColor = getDifficultyColor()
+        // Get difficulty for color and caching
+        let difficulty = SharedState.difficultyRaw
+        let difficultyColor = getDifficultyColor(difficulty)
 
-        // Create timer icon with difficulty color
-        let icon = createColoredIcon(color: difficultyColor)
+        // Create timer icon with difficulty color (cached by difficulty)
+        let icon = createColoredIcon(color: difficultyColor, cacheKey: difficulty)
 
         // Brutalist design: stark, direct, no-nonsense
         return ShieldConfiguration(
@@ -59,7 +65,7 @@ class ShieldConfigurationExtension: ShieldConfigurationDataSource {
                 color: .white
             ),
             subtitle: ShieldConfiguration.Label(
-                text: "Get moving to earn more screen time.",
+                text: "It's time to lock in.\nGet moving to earn more screen time.",
                 color: UIColor(white: 0.6, alpha: 1.0)
             ),
             primaryButtonLabel: ShieldConfiguration.Label(
@@ -73,8 +79,8 @@ class ShieldConfigurationExtension: ShieldConfigurationDataSource {
 
     // MARK: - Helpers
 
-    private func getDifficultyColor() -> UIColor {
-        switch SharedState.difficultyRaw {
+    private func getDifficultyColor(_ difficulty: String) -> UIColor {
+        switch difficulty {
         case "EASY":
             return UIColor(red: 0.133, green: 0.773, blue: 0.369, alpha: 1.0) // #22C55E
         case "MEDIUM":
@@ -88,9 +94,19 @@ class ShieldConfigurationExtension: ShieldConfigurationDataSource {
         }
     }
 
-    private func createColoredIcon(color: UIColor) -> UIImage? {
+    private func createColoredIcon(color: UIColor, cacheKey: String) -> UIImage? {
+        // Return cached icon if available
+        if let cached = Self.iconCache[cacheKey] {
+            return cached
+        }
+
+        // Create and cache the icon
         let config = UIImage.SymbolConfiguration(pointSize: 48, weight: .medium)
-        return UIImage(systemName: "timer", withConfiguration: config)?
+        guard let icon = UIImage(systemName: "timer", withConfiguration: config)?
             .withTintColor(color, renderingMode: .alwaysOriginal)
+        else { return nil }
+
+        Self.iconCache[cacheKey] = icon
+        return icon
     }
 }

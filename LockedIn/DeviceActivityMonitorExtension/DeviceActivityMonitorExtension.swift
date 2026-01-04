@@ -25,6 +25,9 @@ class DeviceActivityMonitorExtension: DeviceActivityMonitor {
     override func intervalDidStart(for activity: DeviceActivityName) {
         super.intervalDidStart(for: activity)
 
+        ExtensionLogger.logInterval("intervalDidStart", message: "activity=\(activity.rawValue)")
+        SharedState.updateHeartbeat()
+
         // New monitoring interval (new day) - sync shield state and reset daily counter
         SharedState.usedMinutesToday = 0
         SharedState.synchronize()
@@ -33,6 +36,10 @@ class DeviceActivityMonitorExtension: DeviceActivityMonitor {
 
     override func intervalDidEnd(for activity: DeviceActivityName) {
         super.intervalDidEnd(for: activity)
+
+        ExtensionLogger.logInterval("intervalDidEnd", message: "activity=\(activity.rawValue)")
+        SharedState.updateHeartbeat()
+        SharedState.synchronize()
 
         // Day ended - reset daily usage tracking happens automatically
         // via the date check in SharedState.usedMinutesToday
@@ -46,8 +53,14 @@ class DeviceActivityMonitorExtension: DeviceActivityMonitor {
     ) {
         super.eventDidReachThreshold(event, activity: activity)
 
+        // Update heartbeat immediately on entry
+        SharedState.updateHeartbeat()
+
         // Parse the minute value from the event name (e.g., "minute_5" → 5)
-        guard let minute = parseMinute(from: event) else { return }
+        guard let minute = parseMinute(from: event) else {
+            ExtensionLogger.logError("parse_failed", context: "event=\(event.rawValue)")
+            return
+        }
 
         // Get current tracking state
         let previousUsed = SharedState.usedMinutesToday
@@ -56,7 +69,11 @@ class DeviceActivityMonitorExtension: DeviceActivityMonitor {
         // Safety check: only process if this is a new minute (avoid re-processing)
         // This should always be true if events fire in order: minute_1, minute_2, etc.
         guard minute > previousUsed else {
-            // Log unexpected state for debugging
+            ExtensionLogger.logSkip(
+                minute: minute,
+                previousUsed: previousUsed,
+                reason: "minute <= previousUsed"
+            )
             SharedState.debugExtensionMessage = "Skip: min=\(minute) prev=\(previousUsed)"
             SharedState.synchronize()
             return
@@ -81,7 +98,16 @@ class DeviceActivityMonitorExtension: DeviceActivityMonitor {
             logSpendTransaction(minutes: toDeduct, source: source)
         }
 
-        // Debug logging
+        // Persistent file logging for diagnostics
+        ExtensionLogger.logThreshold(
+            minute: minute,
+            previousUsed: previousUsed,
+            currentBalance: currentBalance,
+            newBalance: newBalance,
+            deducted: toDeduct
+        )
+
+        // Debug logging (legacy - keep for backwards compatibility)
         SharedState.debugExtensionRunCount += 1
         SharedState.debugExtensionMessage = "min=\(minute) deduct=\(toDeduct) bal=\(newBalance)"
 
@@ -89,6 +115,7 @@ class DeviceActivityMonitorExtension: DeviceActivityMonitor {
 
         // Apply shield if balance exhausted
         if newBalance <= 0 {
+            ExtensionLogger.logInterval("shield_applied", message: "balance exhausted")
             applyShield()
         }
     }
@@ -105,7 +132,7 @@ class DeviceActivityMonitorExtension: DeviceActivityMonitor {
     /// Get count of blocked apps from selection
     private func getBlockedAppCount() -> Int {
         guard let data = SharedState.selectionData,
-              let selection = try? PropertyListDecoder().decode(
+              let selection = try? SharedState.plistDecoder.decode(
                   FamilyActivitySelection.self,
                   from: data
               )
@@ -116,12 +143,16 @@ class DeviceActivityMonitorExtension: DeviceActivityMonitor {
 
     override func intervalWillStartWarning(for activity: DeviceActivityName) {
         super.intervalWillStartWarning(for: activity)
-        // Could send notification before interval starts
+        ExtensionLogger.logInterval("intervalWillStartWarning", message: "activity=\(activity.rawValue)")
+        SharedState.updateHeartbeat()
+        SharedState.synchronize()
     }
 
     override func intervalWillEndWarning(for activity: DeviceActivityName) {
         super.intervalWillEndWarning(for: activity)
-        // Could send notification before interval ends
+        ExtensionLogger.logInterval("intervalWillEndWarning", message: "activity=\(activity.rawValue)")
+        SharedState.updateHeartbeat()
+        SharedState.synchronize()
     }
 
     override func eventWillReachThresholdWarning(
@@ -129,7 +160,9 @@ class DeviceActivityMonitorExtension: DeviceActivityMonitor {
         activity: DeviceActivityName
     ) {
         super.eventWillReachThresholdWarning(event, activity: activity)
-        // Could send "5 minutes remaining" notification here
+        ExtensionLogger.logInterval("eventWillReachThresholdWarning", message: "event=\(event.rawValue)")
+        SharedState.updateHeartbeat()
+        SharedState.synchronize()
     }
 
     // MARK: - Transaction Logging
@@ -156,7 +189,7 @@ class DeviceActivityMonitorExtension: DeviceActivityMonitor {
 
     private func applyShield() {
         guard let data = SharedState.selectionData,
-              let selection = try? PropertyListDecoder().decode(
+              let selection = try? SharedState.plistDecoder.decode(
                   FamilyActivitySelection.self,
                   from: data
               )
