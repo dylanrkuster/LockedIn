@@ -1,0 +1,56 @@
+id: '006'
+type: chore
+title: Add Unit Tests for Core Business Logic
+priority: P1
+complexity: standard
+
+po_notes: |
+  - NOT "comprehensive" - that's scope creep. Targeted tests only.
+  - Ticket 005 (P0 tracking bug) exposed lack of test coverage.
+  - Focus on SharedState - the cross-process state is the riskiest code.
+  - Extension logic next - minute parsing and balance deduction.
+  - UI tests are post-MVP. Don't get distracted.
+  - ROI: 1 hour of test setup prevents days of debugging regressions.
+
+description: |
+  No unit tests exist. Recent P0 bug (005) could have been caught with
+  basic SharedState tests. Core business logic has zero verification.
+
+  Add targeted tests for high-risk areas to prevent regressions as new
+  features land.
+
+acceptance_criteria:
+  - Test target created and building in Xcode
+  - SharedState tests: balance get/set, daily reset, transaction append
+  - Difficulty tests: conversion rates, max balance values
+  - Extension logic tests: minute parsing, balance deduction, skip detection
+  - ExtensionLogger tests: write, read, rotation
+  - Tests run via `xcodebuild test` and pass
+  - CI-ready (no simulator dependency for unit tests)
+
+scope_boundaries:
+  in_scope:
+    - Create LockedInTests target
+    - SharedState unit tests
+    - Difficulty enum tests
+    - BankState model tests
+    - DeviceActivityMonitorExtension logic tests (extracted to testable functions)
+    - ExtensionLogger tests
+
+  out_of_scope:
+    - UI tests / snapshot tests
+    - HealthKit integration tests
+    - FamilyControls integration tests
+    - 100% code coverage
+
+implementation_notes: |
+  1. Create LockedInTests target in Xcode project
+  2. Add Shared/ folder to test target membership
+  3. Extract testable pure functions from extension if needed
+  4. Write tests for:
+     - SharedState: balance, usedMinutesToday, transactions, heartbeat
+     - Difficulty: conversionRate, maxBalance, all cases
+     - BankState: initialization, computed properties
+     - Extension logic: parseMinute(), balance deduction math
+     - ExtensionLogger: log entry creation, read/write, rotation
+  5. Verify `xcodebuild test` works from command line
