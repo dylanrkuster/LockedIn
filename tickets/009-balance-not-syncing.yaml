@@ -1,0 +1,80 @@
+id: '009'
+type: bug
+title: Balance Not Syncing From Extension to Main App
+priority: P0
+complexity: standard
+status: closed
+
+po_notes: |
+  - SHIP BLOCKER. Core loop broken.
+  - Spend tracking records transactions but doesn't update balance
+  - App is useless if this doesn't work
+  - Must fix before any other work
+
+description: |
+  Extension tracks blocked app usage and records transactions, but
+  balance doesn't actually decrement. Main app shows stale balance
+  after usage occurs in background.
+
+  User spends 2 minutes on blocked app. Extension records "-2" transaction.
+  But balance stays at 2. Core loop is broken.
+
+reproduction_steps:
+  - Fresh install app (balance starts at 2 min for testing)
+  - Grant all permissions (FamilyControls, HealthKit)
+  - Add a blocked app
+  - Close all apps (swipe away) - extension stays live
+  - Use blocked app for 2 minutes until balance should hit 0
+  - Open LockedIn app
+  - Observe: Balance still shows 2 minutes
+  - Activity shows: "-2, [App], [timestamp] →2" (balance unchanged)
+
+expected_behavior: |
+  Balance should show 0 minutes after 2 minutes of blocked app usage.
+  Activity should show: "-2, [App], [timestamp] →0"
+
+actual_behavior: |
+  Balance shows 2 minutes (unchanged).
+  Activity shows transaction was recorded but balance didn't update.
+
+acceptance_criteria:
+  - Balance in main app reflects extension's deductions
+  - Opening app after background usage shows correct (reduced) balance
+  - Transaction history shows correct resulting balance after each transaction
+  - Balance hits 0 and triggers block when all minutes spent
+
+scope_boundaries:
+  in_scope:
+    - Debug SharedState read/write in extension
+    - Debug BankState initialization from SharedState
+    - Fix balance synchronization
+    - Verify fix with reproduction steps
+
+  out_of_scope:
+    - New features
+    - UI changes
+    - Performance optimization
+
+investigation_notes: |
+  Likely culprits (check in order):
+
+  1. DeviceActivityMonitorExtension.eventDidReachThreshold:
+     - Is it calling SharedState.balance = newBalance?
+     - Is SharedState.synchronize() being called after write?
+
+  2. BankState.init():
+     - Is it reading from SharedState.balance?
+     - Is it overwriting SharedState with default value?
+
+  3. SharedState.balance setter:
+     - Is UserDefaults actually persisting?
+     - Is App Groups configured correctly for extension?
+
+  4. Race condition:
+     - Does BankState init happen before SharedState is read?
+     - Is there caching that returns stale value?
+
+  Debug approach:
+  - Add ExtensionLogger calls to trace balance before/after in extension
+  - Check SharedState.balance directly on app launch (before BankState init)
+  - Verify App Groups suite name matches across targets

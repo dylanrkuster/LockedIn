@@ -15,12 +15,14 @@ final class BankStateTests: XCTestCase {
         // Reset SharedState before each test
         SharedState.balance = 0
         SharedState.difficultyRaw = "MEDIUM"
+        SharedState.hasLaunched = false
         SharedState.synchronize()
     }
 
     override func tearDown() {
         SharedState.balance = 0
         SharedState.difficultyRaw = "MEDIUM"
+        SharedState.hasLaunched = false
         SharedState.synchronize()
         super.tearDown()
     }
@@ -337,5 +339,48 @@ final class BankStateTests: XCTestCase {
 
         // Balance clamped to 60
         XCTAssertEqual(state.balance, 60)
+    }
+
+    // MARK: - Regression: Zero Balance Bug (Ticket 009)
+
+    func testZeroBalanceNotTreatedAsFreshInstall() {
+        // Regression test for bug where zero balance was incorrectly
+        // treated as a fresh install, resetting balance to default.
+        // This happened when user legitimately spent all their minutes.
+
+        // Simulate: app has been used before, balance exhausted to 0
+        SharedState.hasLaunched = true
+        SharedState.balance = 0
+        SharedState.synchronize()
+
+        // Create BankState via production init
+        let state = BankState()
+
+        // Balance should remain 0, NOT reset to defaultStartingBalance
+        XCTAssertEqual(state.balance, 0)
+        XCTAssertTrue(state.isLocked)
+    }
+
+    func testFreshInstallGetsDefaultBalance() {
+        // Fresh install should get the default starting balance
+        SharedState.hasLaunched = false
+        SharedState.balance = 0
+        SharedState.synchronize()
+
+        let state = BankState()
+
+        // Should get default balance on fresh install
+        XCTAssertEqual(state.balance, SharedState.defaultStartingBalance)
+        XCTAssertFalse(state.isLocked)
+    }
+
+    func testHasLaunchedSetAfterFirstInit() {
+        // Verify hasLaunched is set to true after first BankState init
+        SharedState.hasLaunched = false
+        SharedState.synchronize()
+
+        _ = BankState()
+
+        XCTAssertTrue(SharedState.hasLaunched)
     }
 }

@@ -54,6 +54,12 @@ enum SharedState {
     /// Starting balance for new users (TEMP: 2 minutes for testing)
     static let defaultStartingBalance = 2
 
+    /// Whether the app has been launched before (distinguishes fresh install from zero balance)
+    static var hasLaunched: Bool {
+        get { defaults.bool(forKey: Keys.hasLaunched) }
+        set { defaults.set(newValue, forKey: Keys.hasLaunched) }
+    }
+
     // MARK: - Difficulty
 
     /// Raw difficulty value for cross-process access
@@ -329,6 +335,7 @@ enum SharedState {
 
     private enum Keys {
         static let balance = "balance"
+        static let hasLaunched = "hasLaunched"
         static let difficulty = "difficulty"
         static let selection = "selection"
         static let isMonitoring = "isMonitoring"

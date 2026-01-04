@@ -78,14 +78,16 @@ final class BankState {
         let savedDifficulty = Difficulty(rawValue: SharedState.difficultyRaw) ?? .medium
         let savedBalance = SharedState.balance
 
-        // Use saved balance if available, otherwise start with default
-        let isFreshInstall = savedBalance <= 0
+        // Detect fresh install via explicit flag (not balance value)
+        // Balance of 0 is valid after user spends all minutes
+        let isFreshInstall = !SharedState.hasLaunched
         let startingBalance = isFreshInstall ? SharedState.defaultStartingBalance : savedBalance
 
         // On fresh install, reset stale tracking data from App Groups
         if isFreshInstall {
             SharedState.usedMinutesToday = 0
             SharedState.transactions = []
+            SharedState.hasLaunched = true
             SharedState.synchronize()
         }
 
