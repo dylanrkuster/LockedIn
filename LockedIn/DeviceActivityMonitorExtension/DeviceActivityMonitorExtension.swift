@@ -113,6 +113,12 @@ class DeviceActivityMonitorExtension: DeviceActivityMonitor {
 
         SharedState.synchronize()
 
+        // Check for low balance notifications
+        checkAndPostLowBalanceNotification(
+            previousBalance: currentBalance,
+            newBalance: result.newBalance
+        )
+
         // Apply shield if balance exhausted
         if TrackingLogic.shouldApplyShield(balance: result.newBalance) {
             ExtensionLogger.logInterval("shield_applied", message: "balance exhausted")
@@ -154,6 +160,37 @@ class DeviceActivityMonitorExtension: DeviceActivityMonitor {
         ExtensionLogger.logInterval("eventWillReachThresholdWarning", message: "event=\(event.rawValue)")
         SharedState.updateHeartbeat()
         SharedState.synchronize()
+    }
+
+    // MARK: - Notifications
+
+    /// Check if balance crossed notification thresholds and post if needed.
+    /// If balance drops through both 15 and 5 in one event, only fires 15 min warning
+    /// (user will get 5 min warning later when they continue using blocked apps).
+    private func checkAndPostLowBalanceNotification(previousBalance: Int, newBalance: Int) {
+        var posted15Min = false
+
+        // Check 15 min threshold crossing (from above 15 to at or below 15)
+        if previousBalance > 15 && newBalance <= 15 {
+            if SharedState.notify15MinWarning && !SharedState.notified15MinToday {
+                NotificationManager.postLowBalance15MinWarning()
+                SharedState.notified15MinToday = true
+                posted15Min = true
+                SharedState.synchronize()
+                ExtensionLogger.logInterval("notification_15min", message: "balance=\(newBalance)")
+            }
+        }
+
+        // Check 5 min threshold crossing (from above 5 to at or below 5)
+        // Skip if we just posted 15 min warning (avoid notification spam)
+        if previousBalance > 5 && newBalance <= 5 && !posted15Min {
+            if SharedState.notify5MinWarning && !SharedState.notified5MinToday {
+                NotificationManager.postLowBalance5MinWarning()
+                SharedState.notified5MinToday = true
+                SharedState.synchronize()
+                ExtensionLogger.logInterval("notification_5min", message: "balance=\(newBalance)")
+            }
+        }
     }
 
     // MARK: - Transaction Logging

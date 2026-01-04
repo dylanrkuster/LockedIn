@@ -303,6 +303,66 @@ enum SharedState {
         appTokenToName[tokenKey]
     }
 
+    // MARK: - Notification Settings
+
+    /// Whether to notify at 5 min remaining (default: true)
+    static var notify5MinWarning: Bool {
+        get { defaults.object(forKey: Keys.notify5Min) as? Bool ?? true }
+        set { defaults.set(newValue, forKey: Keys.notify5Min) }
+    }
+
+    /// Whether to notify at 15 min remaining (default: false)
+    static var notify15MinWarning: Bool {
+        get { defaults.object(forKey: Keys.notify15Min) as? Bool ?? false }
+        set { defaults.set(newValue, forKey: Keys.notify15Min) }
+    }
+
+    /// Whether to notify when workout syncs (default: true)
+    static var notifyWorkoutSync: Bool {
+        get { defaults.object(forKey: Keys.notifyWorkout) as? Bool ?? true }
+        set { defaults.set(newValue, forKey: Keys.notifyWorkout) }
+    }
+
+    /// Whether 5 min notification already sent today (prevents spam)
+    static var notified5MinToday: Bool {
+        get {
+            let storedDate = defaults.object(forKey: Keys.notified5MinDate) as? Date
+            guard let date = storedDate, Calendar.current.isDateInToday(date) else {
+                return false  // New day, reset
+            }
+            return defaults.bool(forKey: Keys.notified5MinToday)
+        }
+        set {
+            defaults.set(newValue, forKey: Keys.notified5MinToday)
+            defaults.set(Date(), forKey: Keys.notified5MinDate)
+        }
+    }
+
+    /// Whether 15 min notification already sent today (prevents spam)
+    static var notified15MinToday: Bool {
+        get {
+            let storedDate = defaults.object(forKey: Keys.notified15MinDate) as? Date
+            guard let date = storedDate, Calendar.current.isDateInToday(date) else {
+                return false  // New day, reset
+            }
+            return defaults.bool(forKey: Keys.notified15MinToday)
+        }
+        set {
+            defaults.set(newValue, forKey: Keys.notified15MinToday)
+            defaults.set(Date(), forKey: Keys.notified15MinDate)
+        }
+    }
+
+    /// Reset notification flags when balance goes above thresholds (after workout)
+    static func resetNotificationFlags(for balance: Int) {
+        if balance > 5 {
+            notified5MinToday = false
+        }
+        if balance > 15 {
+            notified15MinToday = false
+        }
+    }
+
     // MARK: - Debug
 
     /// Debug counter to verify extension writes are reaching main app
@@ -362,6 +422,15 @@ enum SharedState {
         static let debugExtensionMessage = "debugExtensionMessage"
         static let debugMainAppMarker = "debugMainAppMarker"
         static let extensionHeartbeat = "extensionHeartbeat"
+
+        // Notification settings
+        static let notify5Min = "notify5Min"
+        static let notify15Min = "notify15Min"
+        static let notifyWorkout = "notifyWorkout"
+        static let notified5MinToday = "notified5MinToday"
+        static let notified5MinDate = "notified5MinDate"
+        static let notified15MinToday = "notified15MinToday"
+        static let notified15MinDate = "notified15MinDate"
     }
 
     // MARK: - Sync

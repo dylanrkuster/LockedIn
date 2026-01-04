@@ -32,6 +32,12 @@ final class SharedStateTests: XCTestCase {
         SharedState.extensionHeartbeat = nil
         SharedState.debugExtensionRunCount = 0
         SharedState.debugExtensionMessage = ""
+        // Reset notification settings
+        SharedState.notify5MinWarning = true
+        SharedState.notify15MinWarning = false
+        SharedState.notifyWorkoutSync = true
+        SharedState.notified5MinToday = false
+        SharedState.notified15MinToday = false
         SharedState.synchronize()
     }
 
@@ -177,5 +183,88 @@ final class SharedStateTests: XCTestCase {
         SharedState.synchronize()
         // Just verify it doesn't crash
         XCTAssertEqual(SharedState.balance, 50)
+    }
+
+    // MARK: - Notification Settings Tests
+
+    func testNotify5MinWarningDefaultsToTrue() {
+        // After clearing, should be true (the default)
+        XCTAssertTrue(SharedState.notify5MinWarning)
+    }
+
+    func testNotify15MinWarningDefaultsToFalse() {
+        // After clearing, should be false (the default)
+        XCTAssertFalse(SharedState.notify15MinWarning)
+    }
+
+    func testNotifyWorkoutSyncDefaultsToTrue() {
+        // After clearing, should be true (the default)
+        XCTAssertTrue(SharedState.notifyWorkoutSync)
+    }
+
+    func testNotificationSettingsGetSet() {
+        SharedState.notify5MinWarning = false
+        XCTAssertFalse(SharedState.notify5MinWarning)
+
+        SharedState.notify15MinWarning = true
+        XCTAssertTrue(SharedState.notify15MinWarning)
+
+        SharedState.notifyWorkoutSync = false
+        XCTAssertFalse(SharedState.notifyWorkoutSync)
+    }
+
+    func testNotified5MinTodayGetSet() {
+        XCTAssertFalse(SharedState.notified5MinToday)
+
+        SharedState.notified5MinToday = true
+        XCTAssertTrue(SharedState.notified5MinToday)
+    }
+
+    func testNotified15MinTodayGetSet() {
+        XCTAssertFalse(SharedState.notified15MinToday)
+
+        SharedState.notified15MinToday = true
+        XCTAssertTrue(SharedState.notified15MinToday)
+    }
+
+    func testResetNotificationFlagsAbove5() {
+        SharedState.notified5MinToday = true
+        SharedState.notified15MinToday = true
+
+        // Balance above 5 should reset 5min flag
+        SharedState.resetNotificationFlags(for: 6)
+        XCTAssertFalse(SharedState.notified5MinToday)
+        // But not 15min flag (need balance > 15)
+        XCTAssertTrue(SharedState.notified15MinToday)
+    }
+
+    func testResetNotificationFlagsAbove15() {
+        SharedState.notified5MinToday = true
+        SharedState.notified15MinToday = true
+
+        // Balance above 15 should reset both flags
+        SharedState.resetNotificationFlags(for: 16)
+        XCTAssertFalse(SharedState.notified5MinToday)
+        XCTAssertFalse(SharedState.notified15MinToday)
+    }
+
+    func testResetNotificationFlagsAtOrBelow5() {
+        SharedState.notified5MinToday = true
+        SharedState.notified15MinToday = true
+
+        // Balance at 5 should not reset 5min flag
+        SharedState.resetNotificationFlags(for: 5)
+        XCTAssertTrue(SharedState.notified5MinToday)
+        XCTAssertTrue(SharedState.notified15MinToday)
+    }
+
+    func testResetNotificationFlagsAt15() {
+        SharedState.notified5MinToday = true
+        SharedState.notified15MinToday = true
+
+        // Balance at 15 should reset 5min flag (15 > 5) but not 15min flag (15 not > 15)
+        SharedState.resetNotificationFlags(for: 15)
+        XCTAssertFalse(SharedState.notified5MinToday)
+        XCTAssertTrue(SharedState.notified15MinToday)
     }
 }
