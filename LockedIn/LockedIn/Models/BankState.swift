@@ -30,6 +30,8 @@ final class BankState {
             SharedState.synchronize()
             // Re-clamp balance if max changed
             balance = min(balance, maxBalance)
+            // Update app icon to reflect new difficulty
+            AppIconManager.updateIcon(for: difficulty)
         }
     }
 
@@ -95,6 +97,9 @@ final class BankState {
             difficulty: savedDifficulty,
             transactions: savedTransactions
         )
+
+        // Set initial app icon based on difficulty (only on first launch)
+        AppIconManager.setInitialIconIfNeeded(for: savedDifficulty)
     }
 
     // MARK: - Balance Operations

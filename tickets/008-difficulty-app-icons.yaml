@@ -1,0 +1,90 @@
+id: '008'
+type: feature
+title: Dynamic App Icon Based on Difficulty
+priority: P2
+complexity: standard
+status: closed
+
+po_notes: |
+  - Strengthens "Difficulty as Identity" tenet - commitment visible on home screen
+  - Red EXTREME icon = public badge of honor
+  - System alert on icon change reinforces intentionality
+  - Low risk, high polish value
+  - Primary persona: Disciplined Optimizer (wants visible commitment)
+  - Secondary benefit: Social proof when others see the icon
+
+description: |
+  App icon should reflect user's difficulty level. EASY shows green,
+  MEDIUM shows yellow, HARD shows orange, EXTREME shows red. Icon
+  changes automatically when difficulty changes. Makes the commitment
+  visible beyond the app.
+
+acceptance_criteria:
+  - Default app icon remains current design (for App Store / pre-launch)
+  - Four alternate icons configured: easy (green), medium (yellow), hard (orange), extreme (red)
+  - Icon changes automatically when user changes difficulty
+  - Icon set on first app launch based on default difficulty (medium)
+  - System alert appears confirming icon change (unavoidable, but reinforces commitment)
+  - Icons display correctly at all iOS sizes (60x60, 120x120, 180x180, etc.)
+
+scope_boundaries:
+  in_scope:
+    - Convert SVG icons to required PNG sizes
+    - Configure CFBundleAlternateIcons in Info.plist
+    - Add icon-switching logic when difficulty changes
+    - Set initial icon on first launch
+
+  out_of_scope:
+    - Custom alert UI (system alert is fine)
+    - Icon preview in difficulty picker
+    - iPad-specific icon sizes
+
+implementation_notes: |
+  1. Convert SVGs to PNGs at required sizes:
+     - 60x60 (iPhone @1x - rarely used)
+     - 120x120 (iPhone @2x)
+     - 180x180 (iPhone @3x)
+     Source files in ~/Downloads/:
+     - icon-easy-green.svg
+     - icon-medium-yellow.svg
+     - icon-hard-orange.svg
+     - icon-extreme-red.svg
+
+  2. Add to Assets.xcassets as alternate app icons:
+     - AppIcon-Easy
+     - AppIcon-Medium
+     - AppIcon-Hard
+     - AppIcon-Extreme
+
+  3. Configure Info.plist:
+     ```xml
+     <key>CFBundleIcons</key>
+     <dict>
+       <key>CFBundleAlternateIcons</key>
+       <dict>
+         <key>AppIcon-Easy</key>
+         <dict>
+           <key>CFBundleIconFiles</key>
+           <array><string>AppIcon-Easy</string></array>
+         </dict>
+         <!-- repeat for Medium, Hard, Extreme -->
+       </dict>
+     </dict>
+     ```
+
+  4. Add icon switching in BankState or create AppIconManager:
+     ```swift
+     func updateAppIcon(for difficulty: Difficulty) {
+         let iconName: String? = switch difficulty {
+         case .easy: "AppIcon-Easy"
+         case .medium: "AppIcon-Medium"
+         case .hard: "AppIcon-Hard"
+         case .extreme: "AppIcon-Extreme"
+         }
+         UIApplication.shared.setAlternateIconName(iconName)
+     }
+     ```
+
+  5. Call on difficulty change (in BankState.difficulty didSet or DifficultyPickerSheet)
+
+  6. Call on first launch to set initial icon
