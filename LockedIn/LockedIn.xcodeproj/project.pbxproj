@@ -24,6 +24,13 @@
 			remoteGlobalIDString = FC7922C32F08B62B00A66398;
 			remoteInfo = DeviceActivityMonitorExtension;
 		};
+		FC7923192F09100000A66398 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = FC79220F2F08790C00A66398 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = FC7922162F08790C00A66398;
+			remoteInfo = LockedIn;
+		};
 		FC7922E52F08B77C00A66398 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = FC79220F2F08790C00A66398 /* Project object */;
@@ -64,6 +71,7 @@
 		FC7922DC2F08B77C00A66398 /* ManagedSettings.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = ManagedSettings.framework; path = System/Library/Frameworks/ManagedSettings.framework; sourceTree = SDKROOT; };
 		FC7922DE2F08B77C00A66398 /* ManagedSettingsUI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = ManagedSettingsUI.framework; path = Library/Frameworks/ManagedSettingsUI.framework; sourceTree = DEVELOPER_DIR; };
 		FC7922F02F08B7A400A66398 /* ShieldActionExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = ShieldActionExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		FC7923102F09100000A66398 /* LockedInTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = LockedInTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -96,11 +104,6 @@
 			path = LockedIn;
 			sourceTree = "<group>";
 		};
-		FC7923002F09000000A66398 /* Shared */ = {
-			isa = PBXFileSystemSynchronizedRootGroup;
-			path = Shared;
-			sourceTree = "<group>";
-		};
 		FC7922C82F08B62B00A66398 /* DeviceActivityMonitorExtension */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
@@ -123,6 +126,16 @@
 				FC7922FA2F08B7A400A66398 /* Exceptions for "ShieldActionExtension" folder in "ShieldActionExtension" target */,
 			);
 			path = ShieldActionExtension;
+			sourceTree = "<group>";
+		};
+		FC7923002F09000000A66398 /* Shared */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = Shared;
+			sourceTree = "<group>";
+		};
+		FC7923112F09100000A66398 /* LockedInTests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = LockedInTests;
 			sourceTree = "<group>";
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
@@ -160,6 +173,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		FC7923142F09100000A66398 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
@@ -168,6 +188,7 @@
 			children = (
 				FC7923002F09000000A66398 /* Shared */,
 				FC7922192F08790C00A66398 /* LockedIn */,
+				FC7923112F09100000A66398 /* LockedInTests */,
 				FC7922C82F08B62B00A66398 /* DeviceActivityMonitorExtension */,
 				FC7922E02F08B77C00A66398 /* ShieldConfigurationExtension */,
 				FC7922F22F08B7A400A66398 /* ShieldActionExtension */,
@@ -183,6 +204,7 @@
 				FC7922C42F08B62B00A66398 /* DeviceActivityMonitorExtension.appex */,
 				FC7922DB2F08B77C00A66398 /* ShieldConfigurationExtension.appex */,
 				FC7922F02F08B7A400A66398 /* ShieldActionExtension.appex */,
+				FC7923102F09100000A66398 /* LockedInTests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -217,8 +239,8 @@
 				FC7922F82F08B7A400A66398 /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
-				FC7923002F09000000A66398 /* Shared */,
 				FC7922192F08790C00A66398 /* LockedIn */,
+				FC7923002F09000000A66398 /* Shared */,
 			);
 			name = LockedIn;
 			packageProductDependencies = (
@@ -240,8 +262,8 @@
 			dependencies = (
 			);
 			fileSystemSynchronizedGroups = (
-				FC7923002F09000000A66398 /* Shared */,
 				FC7922C82F08B62B00A66398 /* DeviceActivityMonitorExtension */,
+				FC7923002F09000000A66398 /* Shared */,
 			);
 			name = DeviceActivityMonitorExtension;
 			packageProductDependencies = (
@@ -263,8 +285,8 @@
 			dependencies = (
 			);
 			fileSystemSynchronizedGroups = (
-				FC7923002F09000000A66398 /* Shared */,
 				FC7922E02F08B77C00A66398 /* ShieldConfigurationExtension */,
+				FC7923002F09000000A66398 /* Shared */,
 			);
 			name = ShieldConfigurationExtension;
 			packageProductDependencies = (
@@ -286,8 +308,8 @@
 			dependencies = (
 			);
 			fileSystemSynchronizedGroups = (
-				FC7923002F09000000A66398 /* Shared */,
 				FC7922F22F08B7A400A66398 /* ShieldActionExtension */,
+				FC7923002F09000000A66398 /* Shared */,
 			);
 			name = ShieldActionExtension;
 			packageProductDependencies = (
@@ -295,6 +317,31 @@
 			productName = ShieldActionExtension;
 			productReference = FC7922F02F08B7A400A66398 /* ShieldActionExtension.appex */;
 			productType = "com.apple.product-type.app-extension";
+		};
+		FC7923122F09100000A66398 /* LockedInTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = FC7923182F09100000A66398 /* Build configuration list for PBXNativeTarget "LockedInTests" */;
+			buildPhases = (
+				FC7923132F09100000A66398 /* Sources */,
+				FC7923142F09100000A66398 /* Frameworks */,
+				FC7923152F09100000A66398 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				FC7923202F09100000A66398 /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				FC7923112F09100000A66398 /* LockedInTests */,
+				FC7922192F08790C00A66398 /* LockedIn */,
+				FC7923002F09000000A66398 /* Shared */,
+			);
+			name = LockedInTests;
+			packageProductDependencies = (
+			);
+			productName = LockedInTests;
+			productReference = FC7923102F09100000A66398 /* LockedInTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
 		};
 /* End PBXNativeTarget section */
 
@@ -318,6 +365,10 @@
 					FC7922EF2F08B7A400A66398 = {
 						CreatedOnToolsVersion = 26.1.1;
 					};
+					FC7923122F09100000A66398 = {
+						CreatedOnToolsVersion = 26.1.1;
+						TestTargetID = FC7922162F08790C00A66398;
+					};
 				};
 			};
 			buildConfigurationList = FC7922122F08790C00A66398 /* Build configuration list for PBXProject "LockedIn" */;
@@ -338,6 +389,7 @@
 				FC7922C32F08B62B00A66398 /* DeviceActivityMonitorExtension */,
 				FC7922DA2F08B77C00A66398 /* ShieldConfigurationExtension */,
 				FC7922EF2F08B7A400A66398 /* ShieldActionExtension */,
+				FC7923122F09100000A66398 /* LockedInTests */,
 			);
 		};
 /* End PBXProject section */
@@ -365,6 +417,13 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 		FC7922EE2F08B7A400A66398 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		FC7923152F09100000A66398 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -402,6 +461,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		FC7923132F09100000A66398 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
@@ -419,6 +485,11 @@
 			isa = PBXTargetDependency;
 			target = FC7922EF2F08B7A400A66398 /* ShieldActionExtension */;
 			targetProxy = FC7922F72F08B7A400A66398 /* PBXContainerItemProxy */;
+		};
+		FC7923202F09100000A66398 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = FC7922162F08790C00A66398 /* LockedIn */;
+			targetProxy = FC7923192F09100000A66398 /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
 
@@ -828,6 +899,63 @@
 			};
 			name = Release;
 		};
+		FC7923162F09100000A66398 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 2GDFC79M88;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.6;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = usdk.LockedInTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "$(inherited) MAIN_APP";
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/LockedIn.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/LockedIn";
+			};
+			name = Debug;
+		};
+		FC7923172F09100000A66398 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 2GDFC79M88;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.6;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = usdk.LockedInTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "$(inherited) MAIN_APP";
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/LockedIn.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/LockedIn";
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -872,6 +1000,15 @@
 			buildConfigurations = (
 				FC7922FC2F08B7A400A66398 /* Debug */,
 				FC7922FD2F08B7A400A66398 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		FC7923182F09100000A66398 /* Build configuration list for PBXNativeTarget "LockedInTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				FC7923162F09100000A66398 /* Debug */,
+				FC7923172F09100000A66398 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

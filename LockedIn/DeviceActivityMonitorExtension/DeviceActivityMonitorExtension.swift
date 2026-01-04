@@ -57,7 +57,7 @@ class DeviceActivityMonitorExtension: DeviceActivityMonitor {
         SharedState.updateHeartbeat()
 
         // Parse the minute value from the event name (e.g., "minute_5" → 5)
-        guard let minute = parseMinute(from: event) else {
+        guard let minute = TrackingLogic.parseMinute(from: event.rawValue) else {
             ExtensionLogger.logError("parse_failed", context: "event=\(event.rawValue)")
             return
         }
@@ -66,9 +66,15 @@ class DeviceActivityMonitorExtension: DeviceActivityMonitor {
         let previousUsed = SharedState.usedMinutesToday
         let currentBalance = SharedState.balance
 
-        // Safety check: only process if this is a new minute (avoid re-processing)
-        // This should always be true if events fire in order: minute_1, minute_2, etc.
-        guard minute > previousUsed else {
+        // Calculate deduction using pure function
+        let result = TrackingLogic.calculateDeduction(
+            minute: minute,
+            previousUsed: previousUsed,
+            currentBalance: currentBalance
+        )
+
+        // Handle skip case
+        if result.shouldSkip {
             ExtensionLogger.logSkip(
                 minute: minute,
                 previousUsed: previousUsed,
@@ -79,23 +85,17 @@ class DeviceActivityMonitorExtension: DeviceActivityMonitor {
             return
         }
 
-        // Calculate new usage since last processed event (usually 1 minute)
-        let newMinutesUsed = minute - previousUsed
-
         // Update used minutes tracker
         SharedState.usedMinutesToday = minute
 
-        // Deduct from balance (can't go below 0)
-        let toDeduct = min(newMinutesUsed, currentBalance)
-        let newBalance = max(0, currentBalance - toDeduct)
-
-        SharedState.balance = newBalance
+        // Apply balance change
+        SharedState.balance = result.newBalance
 
         // Log the spend transaction
-        if toDeduct > 0 {
+        if result.toDeduct > 0 {
             let blockedAppCount = getBlockedAppCount()
             let source = blockedAppCount == 1 ? "Blocked App" : "Blocked Apps"
-            logSpendTransaction(minutes: toDeduct, source: source)
+            logSpendTransaction(minutes: result.toDeduct, source: source)
         }
 
         // Persistent file logging for diagnostics
@@ -103,30 +103,21 @@ class DeviceActivityMonitorExtension: DeviceActivityMonitor {
             minute: minute,
             previousUsed: previousUsed,
             currentBalance: currentBalance,
-            newBalance: newBalance,
-            deducted: toDeduct
+            newBalance: result.newBalance,
+            deducted: result.toDeduct
         )
 
         // Debug logging (legacy - keep for backwards compatibility)
         SharedState.debugExtensionRunCount += 1
-        SharedState.debugExtensionMessage = "min=\(minute) deduct=\(toDeduct) bal=\(newBalance)"
+        SharedState.debugExtensionMessage = "min=\(minute) deduct=\(result.toDeduct) bal=\(result.newBalance)"
 
         SharedState.synchronize()
 
         // Apply shield if balance exhausted
-        if newBalance <= 0 {
+        if TrackingLogic.shouldApplyShield(balance: result.newBalance) {
             ExtensionLogger.logInterval("shield_applied", message: "balance exhausted")
             applyShield()
         }
-    }
-
-    /// Parse minute value from event name like "minute_5"
-    private func parseMinute(from event: DeviceActivityEvent.Name) -> Int? {
-        let raw = event.rawValue
-        guard raw.hasPrefix("minute_"),
-              let minute = Int(raw.dropFirst(7))
-        else { return nil }
-        return minute
     }
 
     /// Get count of blocked apps from selection

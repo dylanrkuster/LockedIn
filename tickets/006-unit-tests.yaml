@@ -3,6 +3,22 @@ type: chore
 title: Add Unit Tests for Core Business Logic
 priority: P1
 complexity: standard
+status: closed
+
+closed_notes: |
+  Implemented 86 unit tests across 6 test files:
+  - BankStateTests (27 tests): initialization, progress, earn/spend, transactions
+  - DifficultyTests (21 tests): conversion rates, max balance, raw values
+  - SharedStateTests (17 tests): balance, monitoring, heartbeat, debug state
+  - TrackingLogicTests (15 tests): parseMinute, calculateDeduction, shouldApplyShield
+  - TransactionTests (11 tests): isEarned, formatting, Codable conformance
+  - ExtensionLoggerTests (8 tests): LogEntry creation, Codable round-trip
+
+  Key architectural change: Extracted TrackingLogic.swift with pure functions
+  from DeviceActivityMonitorExtension for testability.
+
+  Also updated CLAUDE.md to require unit tests in DEVELOP phase for bug fixes
+  and feature changes
 
 po_notes: |
   - NOT "comprehensive" - that's scope creep. Targeted tests only.

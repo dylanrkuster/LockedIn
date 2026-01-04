@@ -5,8 +5,8 @@ Use `/ticket [id]` to start the structured workflow:
 
 ```
 PROPOSAL → PLAN → DEVELOP → VERIFY → REVIEW → APPROVE
-           ↑                          ↑
-        (gate)                     (gate)
+           ↑        ↑                  ↑
+        (gate)   (test)             (gate)
 ```
 
 **Gates require user approval.** Other phases auto-advance.
@@ -15,9 +15,13 @@ PROPOSAL → PLAN → DEVELOP → VERIFY → REVIEW → APPROVE
 
 ## Phase Rules
 1. **PLAN**: Always get approval before coding non-trivial changes
-2. **VERIFY**: Take screenshots as evidence; tests must pass
-3. **REVIEW**: Spawn code-reviewer agent for independent review
-4. **APPROVE**: Present summary and wait for user sign-off
+2. **DEVELOP**: Bug fixes and feature changes require unit tests
+   - New features: Add tests covering the new functionality
+   - Bug fixes: Add regression test proving the fix works
+   - Tests must pass before advancing to VERIFY
+3. **VERIFY**: Take screenshots as evidence; tests must pass
+4. **REVIEW**: Spawn code-reviewer agent for independent review
+5. **APPROVE**: Present summary and wait for user sign-off
 
 ## Project Structure
 ```
@@ -25,6 +29,7 @@ LockedIn/
   ├── Shared/                      # Shared code (multi-target membership)
   │   ├── SharedState.swift        # Cross-process state
   │   ├── ExtensionLogger.swift    # Diagnostic logging
+  │   ├── TrackingLogic.swift      # Pure tracking logic (testable)
   │   ├── AppUsageRecord.swift
   │   └── TransactionRecord.swift
   ├── LockedIn/                    # Main iOS app (app-specific code only)
@@ -32,6 +37,13 @@ LockedIn/
   │   ├── Models/
   │   ├── Views/
   │   └── DesignSystem.swift
+  ├── LockedInTests/               # Unit tests (86 tests)
+  │   ├── BankStateTests.swift
+  │   ├── DifficultyTests.swift
+  │   ├── ExtensionLoggerTests.swift
+  │   ├── SharedStateTests.swift
+  │   ├── TrackingLogicTests.swift
+  │   └── TransactionTests.swift
   ├── DeviceActivityMonitorExtension/
   ├── ShieldActionExtension/
   ├── ShieldConfigurationExtension/
