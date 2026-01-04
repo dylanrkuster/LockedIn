@@ -33,6 +33,7 @@ struct BlockedAppsSection: View {
                                 .tint(AppColor.textTertiary)
                         }
                         Text("EDIT")
+                            .underline()
                             .font(AppFont.label(10))
                             .tracking(2)
                             .foregroundStyle(AppColor.textTertiary)

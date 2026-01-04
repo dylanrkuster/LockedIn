@@ -1,0 +1,62 @@
+id: '010'
+type: improvement
+title: Underline Interactive Text Elements
+priority: P2
+complexity: trivial
+status: closed
+
+po_notes: |
+  - Usability improvement, not feature change
+  - Users missing interactive elements due to brutalist aesthetic
+  - Underline is classic hyperlink pattern - universally understood
+  - Maintains stark design while adding affordance
+  - Low effort, meaningful UX improvement
+
+description: |
+  Interactive text elements look like static labels. Users don't know
+  they can tap "SEE ALL" or "EDIT". Add underlines to indicate
+  tappability while preserving brutalist aesthetic.
+
+acceptance_criteria:
+  - "SEE ALL" in Activity section is underlined
+  - "EDIT" in Blocked Apps section is underlined
+  - Underline style is subtle (thin, matches text color)
+  - Tap states still work as expected
+  - Consistent underline treatment across all interactive text labels
+
+scope_boundaries:
+  in_scope:
+    - Underline SEE ALL button
+    - Underline EDIT button
+    - Any other tappable text labels in dashboard
+
+  out_of_scope:
+    - Difficulty badge (different UI pattern, leave as-is for now)
+    - Navigation buttons
+    - Sheet/modal buttons
+
+implementation_notes: |
+  SwiftUI underline modifier:
+  ```swift
+  Text("SEE ALL")
+      .underline()
+      .font(AppFont.label(10))
+      .tracking(2)
+      .foregroundStyle(AppColor.textTertiary)
+  ```
+
+  Files to modify:
+  - ActivitySection.swift (SEE ALL button)
+  - BlockedAppsSection.swift (EDIT button)
+
+  Consider creating a reusable style or ViewModifier if pattern repeats:
+  ```swift
+  extension Text {
+      func interactiveLabel() -> some View {
+          self.underline()
+              .font(AppFont.label(10))
+              .tracking(2)
+              .foregroundStyle(AppColor.textTertiary)
+      }
+  }
+  ```

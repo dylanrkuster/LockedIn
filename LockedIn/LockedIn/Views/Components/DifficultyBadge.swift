@@ -39,9 +39,10 @@ struct DifficultyBadge: View {
                 }
             }
 
-            // Difficulty label with ratio
+            // Difficulty label with ratio (underlined to indicate tappability)
             HStack(spacing: AppSpacing.xs) {
                 Text(difficulty.rawValue)
+                    .underline()
                     .font(AppFont.label(10))
                     .tracking(2)
                     .foregroundStyle(difficulty.color)

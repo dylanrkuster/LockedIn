@@ -35,6 +35,7 @@ struct ActivitySection: View {
                 if !transactions.isEmpty, let action = onSeeAll {
                     Button(action: action) {
                         Text("SEE ALL")
+                            .underline()
                             .font(AppFont.label(10))
                             .tracking(2)
                             .foregroundStyle(AppColor.textTertiary)
