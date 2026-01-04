@@ -3,6 +3,7 @@ type: bug
 title: Activity Tracking Fails Silently After Extended Use (~10 min)
 priority: P0
 complexity: large
+status: closed
 
 po_notes: |
   - P0: Directly violates "Earn Your Scroll" tenet. Users get free screen time.
