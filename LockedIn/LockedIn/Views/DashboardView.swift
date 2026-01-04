@@ -12,6 +12,7 @@ struct DashboardView: View {
     @Bindable var familyControlsManager: FamilyControlsManager
     @State private var showActivityHistory = false
     @State private var showDebugLogs = false
+    @State private var showDifficultyPicker = false
 
     var body: some View {
         NavigationStack {
@@ -31,7 +32,8 @@ struct DashboardView: View {
                     // The Vault - center of attention
                     BalanceDisplay(
                         balance: bankState.balance,
-                        difficulty: bankState.difficulty
+                        difficulty: bankState.difficulty,
+                        onDifficultyTap: { showDifficultyPicker = true }
                     )
 
                     Spacer()
@@ -83,6 +85,17 @@ struct DashboardView: View {
             .navigationDestination(isPresented: $showDebugLogs) {
                 DebugLogView()
             }
+            .sheet(isPresented: $showDifficultyPicker) {
+                DifficultyPickerSheet(
+                    currentDifficulty: bankState.difficulty,
+                    currentBalance: bankState.balance,
+                    onSelect: { newDifficulty in
+                        bankState.difficulty = newDifficulty
+                    }
+                )
+                .presentationDetents([.medium])
+                .presentationDragIndicator(.visible)
+            }
         }
         .preferredColorScheme(.dark)
     }
@@ -93,19 +106,11 @@ struct DashboardView: View {
                 .font(.system(size: 13, weight: .bold, design: .default))
                 .tracking(4)
                 .foregroundStyle(AppColor.textPrimary)
+                .onLongPressGesture(minimumDuration: 3.0) {
+                    showDebugLogs = true
+                }
 
             Spacer()
-
-            Button {
-                showDebugLogs = true
-            } label: {
-                Image(systemName: "gearshape")
-                    .font(.system(size: 18, weight: .light))
-                    .foregroundStyle(AppColor.textTertiary)
-                    .frame(width: 44, height: 44)
-                    .contentShape(Rectangle())
-            }
-            .accessibilityLabel("Debug Logs")
         }
     }
 

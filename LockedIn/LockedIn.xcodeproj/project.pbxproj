@@ -24,13 +24,6 @@
 			remoteGlobalIDString = FC7922C32F08B62B00A66398;
 			remoteInfo = DeviceActivityMonitorExtension;
 		};
-		FC7923192F09100000A66398 /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = FC79220F2F08790C00A66398 /* Project object */;
-			proxyType = 1;
-			remoteGlobalIDString = FC7922162F08790C00A66398;
-			remoteInfo = LockedIn;
-		};
 		FC7922E52F08B77C00A66398 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = FC79220F2F08790C00A66398 /* Project object */;
@@ -44,6 +37,13 @@
 			proxyType = 1;
 			remoteGlobalIDString = FC7922EF2F08B7A400A66398;
 			remoteInfo = ShieldActionExtension;
+		};
+		FC7923192F09100000A66398 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = FC79220F2F08790C00A66398 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = FC7922162F08790C00A66398;
+			remoteInfo = LockedIn;
 		};
 /* End PBXContainerItemProxy section */
 
@@ -332,9 +332,9 @@
 				FC7923202F09100000A66398 /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
-				FC7923112F09100000A66398 /* LockedInTests */,
 				FC7922192F08790C00A66398 /* LockedIn */,
 				FC7923002F09000000A66398 /* Shared */,
+				FC7923112F09100000A66398 /* LockedInTests */,
 			);
 			name = LockedInTests;
 			packageProductDependencies = (
@@ -637,7 +637,7 @@
 				"INFOPLIST_KEY_UIStatusBarStyle[sdk=iphonesimulator*]" = UIStatusBarStyleDefault;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations = UIInterfaceOrientationPortrait;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
-				IPHONEOS_DEPLOYMENT_TARGET = 18.6;
+				IPHONEOS_DEPLOYMENT_TARGET = 17;
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/Frameworks";
 				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 26.0;
@@ -687,7 +687,7 @@
 				"INFOPLIST_KEY_UIStatusBarStyle[sdk=iphonesimulator*]" = UIStatusBarStyleDefault;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations = UIInterfaceOrientationPortrait;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
-				IPHONEOS_DEPLOYMENT_TARGET = 18.6;
+				IPHONEOS_DEPLOYMENT_TARGET = 17;
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/Frameworks";
 				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 26.0;

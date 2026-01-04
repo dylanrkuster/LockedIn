@@ -271,4 +271,71 @@ final class BankStateTests: XCTestCase {
         // Balance should be clamped to new max
         XCTAssertEqual(state.balance, 120)
     }
+
+    func testChangingToHigherMaxPreservesBalance() {
+        // Hard (max 120) to Easy (max 240)
+        let state = BankState(balance: 100, difficulty: .hard)
+        XCTAssertEqual(state.balance, 100)
+
+        state.difficulty = .easy
+
+        // Balance unchanged since under new max
+        XCTAssertEqual(state.balance, 100)
+        XCTAssertEqual(state.maxBalance, 240)
+    }
+
+    func testChangingToLowerMaxWithBalanceUnderNewMax() {
+        // Easy (max 240) with 50 min to Extreme (max 60)
+        let state = BankState(balance: 50, difficulty: .easy)
+        XCTAssertEqual(state.balance, 50)
+
+        state.difficulty = .extreme
+
+        // Balance unchanged since under new max
+        XCTAssertEqual(state.balance, 50)
+        XCTAssertEqual(state.maxBalance, 60)
+    }
+
+    func testChangingToLowerMaxWithBalanceOverNewMax() {
+        // Easy (max 240) with 200 min to Hard (max 120)
+        let state = BankState(balance: 200, difficulty: .easy)
+        XCTAssertEqual(state.balance, 200)
+
+        state.difficulty = .hard
+
+        // Balance clamped to new max
+        XCTAssertEqual(state.balance, 120)
+        XCTAssertEqual(state.maxBalance, 120)
+    }
+
+    func testChangingToSameDifficultyNoOp() {
+        let state = BankState(balance: 100, difficulty: .medium)
+
+        state.difficulty = .medium
+
+        // No change
+        XCTAssertEqual(state.balance, 100)
+        XCTAssertEqual(state.difficulty, .medium)
+    }
+
+    func testChangingDifficultyFromExtremeToEasy() {
+        // Extreme (max 60) to Easy (max 240) - balance should stay same
+        let state = BankState(balance: 60, difficulty: .extreme)
+        XCTAssertEqual(state.balance, 60)
+
+        state.difficulty = .easy
+
+        XCTAssertEqual(state.balance, 60)
+        XCTAssertEqual(state.maxBalance, 240)
+    }
+
+    func testChangingDifficultyFromEasyToExtreme() {
+        // Easy (max 240) with 200 min to Extreme (max 60)
+        let state = BankState(balance: 200, difficulty: .easy)
+
+        state.difficulty = .extreme
+
+        // Balance clamped to 60
+        XCTAssertEqual(state.balance, 60)
+    }
 }

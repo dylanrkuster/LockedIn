@@ -1,0 +1,96 @@
+id: '007'
+type: feature
+title: Tap Difficulty Badge to Change Difficulty
+priority: P1
+complexity: standard
+status: closed
+
+closed_notes: |
+  Implemented tappable difficulty badge with picker sheet:
+  - Tap difficulty badge on dashboard to open picker
+  - Shows all 4 difficulties with conversion rates and max balance
+  - Warning indicator for options that will reduce balance
+  - Confirmation alert when minutes will be lost
+  - Balance automatically clamped to new max on change
+  - Removed settings gear icon from dashboard
+  - Debug tools accessible via 3-second long-press on "LOCKEDIN" header
+  - Updated shield configuration: lock.fill icon, cleaner copy
+  - Added 6 unit tests for difficulty change edge cases
+
+po_notes: |
+  - Aligns with "Simplicity" tenet: no settings screen, everything on dashboard
+  - "Difficulty as Identity" preserved: change is intentional, visible, has consequences
+  - Only penalize when necessary (balance exceeds new cap)
+  - Blocked apps already editable via dashboard EDIT button
+  - Settings gear icon becomes unnecessary - remove it
+  - Debug tools stay accessible via hidden gesture for development
+
+description: |
+  No settings screen needed. Difficulty is the only setting that matters,
+  and it should be changeable directly from the dashboard by tapping the
+  difficulty badge.
+
+  Current settings button leads to debug page. Hide debug access behind
+  a developer gesture and remove the gear icon.
+
+acceptance_criteria:
+  - Difficulty badge (rank bars + label) is tappable
+  - Tapping opens sheet with all 4 difficulty options
+  - Each option shows: name, conversion rate, max balance
+  - Current difficulty is visually indicated in picker
+  - Selecting same difficulty dismisses sheet (no-op)
+  - Selecting different difficulty with balance under new max applies immediately
+  - Selecting different difficulty with balance over new max shows warning first
+  - Warning states exactly how many minutes will be lost
+  - On confirm, difficulty changes and balance clamps to new max
+  - Settings gear icon removed from dashboard header
+  - Debug tools accessible via hidden gesture (long-press LOCKEDIN header)
+
+scope_boundaries:
+  in_scope:
+    - Tappable difficulty badge
+    - Difficulty picker sheet
+    - Conditional warning dialog
+    - Balance clamping logic
+    - Remove settings gear icon
+    - Hidden debug gesture
+
+  out_of_scope:
+    - Settings screen
+    - Notifications settings
+    - Export/reset functionality
+    - Any other settings
+
+implementation_notes: |
+  1. Make DifficultyBadge tappable (add onTap handler)
+  2. Create DifficultyPickerSheet showing all 4 difficulties:
+     ┌─────────────────────────────────┐
+     │ ▮░░░  EASY                      │
+     │ 1 min workout = 2 min screen    │
+     │ Max bank: 240 min               │
+     └─────────────────────────────────┘
+     ┌─────────────────────────────────┐
+     │ ▮▮░░  MEDIUM            ← current
+     │ 1 min workout = 1 min screen    │
+     │ Max bank: 180 min               │
+     └─────────────────────────────────┘
+     etc.
+     - Highlight current selection (border or checkmark)
+  3. On selection:
+     - If same difficulty: dismiss
+     - If new max >= current balance: apply immediately
+     - If new max < current balance: show alert with loss amount
+  4. Apply change:
+     - Update SharedState.difficultyRaw
+     - Clamp balance: min(currentBalance, newMax)
+     - Sync to extensions
+  5. Remove gear icon from DashboardView header
+  6. Add long-press gesture to "LOCKEDIN" title → navigate to debug view
+
+  Balance clamping formula:
+    newBalance = min(currentBalance, difficulty.maxBalance)
+    lostMinutes = currentBalance - newBalance
+
+  Warning text template:
+    "Switching to {DIFFICULTY} caps your bank at {MAX} minutes.
+     You'll lose {LOST} minutes."

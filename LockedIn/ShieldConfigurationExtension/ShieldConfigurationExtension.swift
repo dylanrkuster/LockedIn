@@ -52,8 +52,12 @@ class ShieldConfigurationExtension: ShieldConfigurationDataSource {
         let difficulty = SharedState.difficultyRaw
         let difficultyColor = getDifficultyColor(difficulty)
 
-        // Create timer icon with difficulty color (cached by difficulty)
-        let icon = createColoredIcon(color: difficultyColor, cacheKey: difficulty)
+        // Create lock icon with difficulty color (cached by difficulty)
+        let icon = createColoredIcon(
+            systemName: "lock.fill",
+            color: difficultyColor,
+            cacheKey: difficulty
+        )
 
         // Brutalist design: stark, direct, no-nonsense
         return ShieldConfiguration(
@@ -65,7 +69,7 @@ class ShieldConfigurationExtension: ShieldConfigurationDataSource {
                 color: .white
             ),
             subtitle: ShieldConfiguration.Label(
-                text: "It's time to lock in.\nGet moving to earn more screen time.",
+                text: "It's time to lock in.",
                 color: UIColor(white: 0.6, alpha: 1.0)
             ),
             primaryButtonLabel: ShieldConfiguration.Label(
@@ -94,7 +98,7 @@ class ShieldConfigurationExtension: ShieldConfigurationDataSource {
         }
     }
 
-    private func createColoredIcon(color: UIColor, cacheKey: String) -> UIImage? {
+    private func createColoredIcon(systemName: String, color: UIColor, cacheKey: String) -> UIImage? {
         // Return cached icon if available
         if let cached = Self.iconCache[cacheKey] {
             return cached
@@ -102,7 +106,7 @@ class ShieldConfigurationExtension: ShieldConfigurationDataSource {
 
         // Create and cache the icon
         let config = UIImage.SymbolConfiguration(pointSize: 48, weight: .medium)
-        guard let icon = UIImage(systemName: "timer", withConfiguration: config)?
+        guard let icon = UIImage(systemName: systemName, withConfiguration: config)?
             .withTintColor(color, renderingMode: .alwaysOriginal)
         else { return nil }
 

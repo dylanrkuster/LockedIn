@@ -9,6 +9,7 @@ import SwiftUI
 
 struct DifficultyBadge: View {
     let difficulty: Difficulty
+    var onTap: (() -> Void)?
 
     private let totalBars = 4
     private let barWidth: CGFloat = 3
@@ -16,6 +17,18 @@ struct DifficultyBadge: View {
     private let barSpacing: CGFloat = 3
 
     var body: some View {
+        badgeContent
+            .contentShape(Rectangle())
+            .onTapGesture {
+                onTap?()
+            }
+            .accessibilityElement(children: .combine)
+            .accessibilityLabel("Difficulty \(difficulty.rawValue), ratio \(difficulty.ratioDisplay)")
+            .accessibilityHint(onTap != nil ? "Tap to change difficulty" : "")
+            .accessibilityAddTraits(onTap != nil ? .isButton : [])
+    }
+
+    private var badgeContent: some View {
         VStack(spacing: AppSpacing.sm) {
             // Rank bars
             HStack(spacing: barSpacing) {
@@ -42,8 +55,6 @@ struct DifficultyBadge: View {
                     .foregroundStyle(AppColor.textTertiary)
             }
         }
-        .accessibilityElement(children: .combine)
-        .accessibilityLabel("Difficulty \(difficulty.rawValue), ratio \(difficulty.ratioDisplay)")
     }
 }
 

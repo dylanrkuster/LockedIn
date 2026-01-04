@@ -10,6 +10,7 @@ import SwiftUI
 struct BalanceDisplay: View {
     let balance: Int
     let difficulty: Difficulty
+    var onDifficultyTap: (() -> Void)?
 
     private var displayBalance: Int {
         max(0, balance)
@@ -38,8 +39,8 @@ struct BalanceDisplay: View {
             Spacer()
                 .frame(height: AppSpacing.lg)
 
-            // Difficulty rank
-            DifficultyBadge(difficulty: difficulty)
+            // Difficulty rank (tappable)
+            DifficultyBadge(difficulty: difficulty, onTap: onDifficultyTap)
         }
     }
 }
