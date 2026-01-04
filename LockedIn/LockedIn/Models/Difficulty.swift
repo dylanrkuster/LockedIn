@@ -47,6 +47,16 @@ enum Difficulty: String, CaseIterable, Identifiable {
         }
     }
 
+    /// Starting balance for new users at this difficulty
+    var startingBalance: Int {
+        switch self {
+        case .easy: 90
+        case .medium: 60
+        case .hard: 30
+        case .extreme: 0
+        }
+    }
+
     /// Display string for the conversion ratio (workout:screen)
     /// e.g., "2:1" means 2 workout minutes = 1 screen minute
     var ratioDisplay: String {

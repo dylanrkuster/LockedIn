@@ -12,11 +12,40 @@ struct LockedInApp: App {
     @State private var familyControlsManager = FamilyControlsManager()
     @State private var blockingManager = BlockingManager()
     @State private var healthKitManager = HealthKitManager()
+    @State private var showOnboarding = !SharedState.hasCompletedOnboarding
 
     var body: some Scene {
         WindowGroup {
-            DashboardView(bankState: bankState, familyControlsManager: familyControlsManager)
-                .onAppear {
+            if showOnboarding {
+                OnboardingView(
+                    familyControlsManager: familyControlsManager,
+                    healthKitManager: healthKitManager,
+                    onComplete: { difficulty in
+                        // Apply the selected difficulty and starting balance
+                        bankState.difficulty = difficulty
+                        bankState.balance = difficulty.startingBalance
+                        // Mark onboarding complete AFTER state is set
+                        // (ensures consistent state if app killed mid-completion)
+                        SharedState.hasCompletedOnboarding = true
+                        SharedState.synchronize()
+                        // Transition to dashboard
+                        withAnimation {
+                            showOnboarding = false
+                        }
+                        // Setup blocking and health after onboarding
+                        setupBlocking()
+                        setupHealthKit()
+                    }
+                )
+            } else {
+                dashboardContent
+            }
+        }
+    }
+
+    private var dashboardContent: some View {
+        DashboardView(bankState: bankState, familyControlsManager: familyControlsManager)
+            .onAppear {
                     // Merge any pending transactions from extensions
                     SharedState.mergePendingTransactions()
 
@@ -43,7 +72,6 @@ struct LockedInApp: App {
                     // Reload state when app returns to foreground
                     reloadStateFromShared()
                 }
-        }
     }
 
     // MARK: - HealthKit Setup

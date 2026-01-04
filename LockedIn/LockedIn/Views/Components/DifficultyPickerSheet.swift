@@ -190,13 +190,13 @@ private struct DifficultyOptionRow: View {
     private var conversionText: String {
         switch difficulty {
         case .easy:
-            return "1 min workout = 2 min screen"
+            return "1 min exercise = 2 min screen"
         case .medium:
-            return "1 min workout = 1 min screen"
+            return "1 min exercise = 1 min screen"
         case .hard:
-            return "2 min workout = 1 min screen"
+            return "2 min exercise = 1 min screen"
         case .extreme:
-            return "3 min workout = 1 min screen"
+            return "3 min exercise = 1 min screen"
         }
     }
 }

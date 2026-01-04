@@ -1,0 +1,241 @@
+id: '011'
+type: feature
+title: Onboarding Flow
+priority: P1
+complexity: standard
+status: closed
+
+po_notes: |
+  - CRITICAL for D1 retention. Users currently land on dashboard with no context.
+  - Primary persona: Recovering Scroller (needs to understand the deal they're making)
+  - This is a commitment ceremony, not a tutorial.
+  - Emotional arc: Recognition → Confession → Commitment → Authorization → Activation
+  - Must complete in < 60 seconds. Every word earns its place.
+  - Brand voice: Direct, terse, slightly confrontational. No hand-holding.
+  - Post-MVP: Could add "How it works" expandable section, but trust user intelligence for now.
+
+description: |
+  New users land on dashboard with no guidance. They don't understand the
+  earn/spend mechanic, haven't selected blocked apps, and haven't granted
+  permissions. First-time experience is broken.
+
+  Build a 5-screen onboarding flow that:
+  1. Communicates the value prop
+  2. Gets users to select their "poison" apps
+  3. Commits them to a difficulty level
+  4. Grants required permissions
+  5. Activates with urgency
+
+acceptance_criteria:
+  # Overall
+  - Onboarding shows on first launch only (persisted flag)
+  - Onboarding completes in < 60 seconds for decisive user
+  - Back navigation allowed on all screens except first
+  - Brutalist aesthetic matches existing app (black bg, white text, minimal color)
+  - No progress indicator, illustrations, or emoji
+
+  # Screen 1: Welcome
+  - Shows "LOCKEDIN" header
+  - Shows tagline "Earn your screen time. One workout at a time."
+  - Single CTA "GET STARTED"
+  - Tap advances to app selection
+
+  # Screen 2: App Selection
+  - Header "SELECT YOUR POISON"
+  - Subtext "These apps get blocked when your bank hits zero."
+  - Button opens FamilyActivityPicker as sheet
+  - Shows count after selection (e.g., "4 apps selected")
+  - Continue button disabled until at least 1 app selected
+  - Selection persists via existing FamilyControlsManager
+
+  # Screen 3: Difficulty Selection
+  - Header "HOW LOCKED IN ARE YOU?"
+  - Four tappable cards showing:
+    - Rank bars (1-4 filled)
+    - Difficulty name (EASY/MEDIUM/HARD/EXTREME)
+    - Ratio display (1:2, 1:1, 2:1, 3:1)
+    - Max bank (240/180/120/60 min)
+    - Tagline
+  - MEDIUM pre-selected as default
+  - Selected card has accent color treatment
+  - Tap to change selection
+  - Continue button always enabled (default selection)
+
+  # Screen 4: Permissions (can be 1 or 2 screens)
+  - Screen Time permission:
+    - Header "SCREEN TIME ACCESS"
+    - Subtext "Required to block apps."
+    - Grant button triggers FamilyControls authorization
+    - If denied: show explanation, offer retry, block progress
+  - Health permission:
+    - Header "APPLE HEALTH ACCESS"
+    - Subtext "Required to track workouts."
+    - Grant button triggers HealthKit authorization
+    - If denied: show warning but allow continue (earning won't work)
+
+  # Screen 5: Activation
+  - Header "YOU'RE LOCKED IN"
+  - Shows starting balance (60 min)
+  - Shows selected difficulty with rank bars
+  - Shows blocked app count
+  - Tagline "Your bank is ticking. Go earn more."
+  - CTA "LET'S GO" completes onboarding and shows dashboard
+
+  # Edge Cases
+  - App killed mid-onboarding: restart from beginning (acceptable, it's quick)
+  - Permissions already granted: still show screen but auto-succeed on tap
+  - Screen Time denied: cannot proceed, must grant to use app
+  - Health denied: can proceed with warning toast/text
+
+scope_boundaries:
+  in_scope:
+    - 5-screen onboarding flow
+    - Onboarding completion persistence
+    - FamilyControls permission request
+    - HealthKit permission request
+    - FamilyActivityPicker integration
+    - Difficulty selection UI
+    - Modify app entry point to show onboarding vs dashboard
+    - Set starting balance based on difficulty (90/60/30/0 for Easy/Medium/Hard/Extreme)
+
+  out_of_scope:
+    - "How it works" tutorial/explainer
+    - Animated transitions beyond simple fades
+    - Skip button or "do this later"
+    - Social proof ("Join X users")
+    - Pre-populated app suggestions (FamilyActivityPicker limitation)
+    - Onboarding analytics/tracking
+    - Re-showing onboarding (one-time only)
+
+implementation_notes: |
+  ## File Structure (suggested)
+
+  ```
+  Views/
+    Onboarding/
+      OnboardingView.swift        # Container with navigation state
+      OnboardingWelcome.swift     # Screen 1
+      OnboardingAppSelection.swift # Screen 2
+      OnboardingDifficulty.swift  # Screen 3
+      OnboardingPermissions.swift # Screen 4 (or split into 4a/4b)
+      OnboardingActivation.swift  # Screen 5
+  ```
+
+  Or simpler: single OnboardingView.swift with private internal views.
+
+  ## State Management
+
+  ```swift
+  enum OnboardingStep: Int, CaseIterable {
+      case welcome
+      case appSelection
+      case difficulty
+      case permissions      // or split: screenTime, health
+      case activation
+  }
+
+  @Observable
+  class OnboardingState {
+      var currentStep: OnboardingStep = .welcome
+      var selectedDifficulty: Difficulty = .medium
+      var hasGrantedScreenTime: Bool = false
+      var hasGrantedHealth: Bool = false
+  }
+  ```
+
+  ## Persistence
+
+  Add to SharedState.swift:
+  ```swift
+  static var hasCompletedOnboarding: Bool {
+      get { defaults.bool(forKey: Keys.hasCompletedOnboarding) }
+      set { defaults.set(newValue, forKey: Keys.hasCompletedOnboarding) }
+  }
+  ```
+
+  ## App Entry Point
+
+  Modify LockedInApp.swift:
+  ```swift
+  @main
+  struct LockedInApp: App {
+      var body: some Scene {
+          WindowGroup {
+              if SharedState.hasCompletedOnboarding {
+                  DashboardView()
+              } else {
+                  OnboardingView()
+              }
+          }
+      }
+  }
+  ```
+
+  ## Starting Balance
+
+  Update SharedState.defaultStartingBalance from 2 to 60:
+  ```swift
+  /// Starting balance for new users
+  static let defaultStartingBalance = 60
+  ```
+
+  ## Permission Handling
+
+  FamilyControls:
+  - Use existing FamilyControlsManager.requestAuthorization()
+  - Check AuthorizationCenter.shared.authorizationStatus
+
+  HealthKit:
+  - Need to add HealthKit authorization request
+  - Check HKHealthStore.authorizationStatus(for:)
+  - Request read access for HKWorkoutType
+
+  ## Visual Notes
+
+  - Difficulty cards should reuse/extend existing DifficultyBadge styling
+  - Use existing AppFont, AppColor, AppSpacing tokens
+  - Buttons: white text, thin white border, no fill (like dashboard actions)
+  - Selected difficulty card: accent color border or subtle background
+
+  ## Copy (final review before implementation)
+
+  Screen 1:
+    Header: "LOCKEDIN"
+    Body: "Earn your screen time.\nOne workout at a time."
+    CTA: "GET STARTED"
+
+  Screen 2:
+    Header: "SELECT YOUR POISON"
+    Body: "These apps get blocked when your bank hits zero."
+    CTA: "CHOOSE APPS" / "CONTINUE"
+
+  Screen 3:
+    Header: "HOW LOCKED IN ARE YOU?"
+    Cards: [difficulty data from Difficulty enum]
+    CTA: "CONTINUE"
+
+  Screen 4a:
+    Header: "SCREEN TIME ACCESS"
+    Body: "Required to block apps."
+    CTA: "GRANT ACCESS"
+
+  Screen 4b:
+    Header: "APPLE HEALTH ACCESS"
+    Body: "Required to track workouts."
+    CTA: "GRANT ACCESS" / "CONTINUE"
+
+  Screen 5:
+    Header: "YOU'RE LOCKED IN"
+    Body: "Starting Bank: 60 min\n[DIFFICULTY] · [COUNT] apps blocked"
+    Tagline: "Your bank is ticking. Go earn more."
+    CTA: "LET'S GO"
+
+testing_notes: |
+  - Test fresh install flow end-to-end
+  - Test permission denied states (both Screen Time and Health)
+  - Test back navigation on each screen
+  - Test killing app mid-onboarding (should restart)
+  - Test that onboarding only shows once
+  - Test that selected apps persist after onboarding
+  - Test that difficulty persists after onboarding
+  - Verify dashboard shows correct state after onboarding completion

@@ -75,6 +75,34 @@ final class DifficultyTests: XCTestCase {
         XCTAssertEqual(Difficulty.extreme.maxBalance, 60)
     }
 
+    // MARK: - Starting Balance
+
+    func testEasyStartingBalance() {
+        XCTAssertEqual(Difficulty.easy.startingBalance, 90)
+    }
+
+    func testMediumStartingBalance() {
+        XCTAssertEqual(Difficulty.medium.startingBalance, 60)
+    }
+
+    func testHardStartingBalance() {
+        XCTAssertEqual(Difficulty.hard.startingBalance, 30)
+    }
+
+    func testExtremeStartingBalance() {
+        XCTAssertEqual(Difficulty.extreme.startingBalance, 0)
+    }
+
+    func testStartingBalanceDoesNotExceedMaxBalance() {
+        for difficulty in Difficulty.allCases {
+            XCTAssertLessThanOrEqual(
+                difficulty.startingBalance,
+                difficulty.maxBalance,
+                "\(difficulty) starting balance should not exceed max balance"
+            )
+        }
+    }
+
     // MARK: - Ratio Display
 
     func testEasyRatioDisplay() {
