@@ -1,0 +1,84 @@
+id: '012'
+type: feature
+title: Add push notifications for balance warnings and workout sync
+priority: P1
+complexity: standard
+status: in_progress
+
+po_notes: |
+  - Strengthens core loop: notifications create accountability and confirm earnings
+  - Primary persona: Recovering Scroller (needs the friction/reminders)
+  - Secondary persona: Disciplined Optimizer (will disable 15 min, keep 5 min)
+  - All notifications are LOCAL (no server required)
+  - Notification permission should be requested during onboarding (ticket 011)
+  - Copy follows brand voice: terse, direct, no praise, no emoji
+
+description: |
+  App lacks notifications. Users get no warning before hitting 0 and no
+  confirmation when workouts sync. This creates surprise blocks and
+  erodes trust in the earn mechanism.
+
+  Add local notifications for:
+  1. Low balance warnings (5 min, optionally 15 min)
+  2. Workout sync confirmation with running balance
+
+acceptance_criteria:
+  - User receives notification when balance drops to 5 minutes remaining
+  - User receives notification when workout syncs, showing earned amount and new balance
+  - User can optionally enable 15 min warning in settings (default OFF)
+  - User can toggle each notification type independently in settings
+  - Notifications follow brand voice (terse, direct, no emoji, no praise)
+  - Notifications work when app is backgrounded
+  - No notification spam (one notification per trigger, not repeated)
+
+technical_notes: |
+  Implementation approach:
+
+  1. NOTIFICATION TYPES:
+     - lowBalance5Min: "5 min left. The block is coming."
+     - lowBalance15Min: "15 min remaining." (optional, default OFF)
+     - workoutSynced: "+{earned} min. Bank: {balance}/{max}."
+     - workoutSyncedCapped: "+{earned} of {workout} min. Bank full."
+
+  2. TRIGGERING MECHANISM:
+     - Balance warnings: DeviceActivityMonitor extension updates balance
+       → Post Darwin notification or use App Groups to signal main app
+       → Main app schedules/fires local notification
+     - Workout sync: HealthKit observer in main app
+       → Fire notification immediately after processing workout
+
+  3. SETTINGS STORAGE:
+     - UserDefaults (App Group for extension access)
+     - Keys: notifications_5min (Bool, default true)
+              notifications_15min (Bool, default false)
+              notifications_workout (Bool, default true)
+
+  4. NOTIFICATION PERMISSION:
+     - Request in onboarding flow (ticket 011 adds this)
+     - Graceful degradation if denied (app works, no warnings)
+
+  5. EDGE CASES:
+     - Don't fire 5 min warning if 15 min warning was just sent (within 10 min)
+     - Don't fire duplicate workout notifications for same workout UUID
+     - Handle notification permission denied gracefully
+
+  6. SETTINGS UI:
+     Add to Settings screen:
+     ```
+     NOTIFICATIONS
+     ├─ [ON]  5 min warning
+     ├─ [OFF] 15 min warning
+     └─ [ON]  Workout synced
+     ```
+
+out_of_scope:
+  - Locked out notification (shield is sufficient)
+  - Daily/weekly summary notifications
+  - Inactivity nudges ("You haven't worked out in X days")
+  - Streak notifications
+  - Rich notifications with images/actions
+  - Server-side push notifications
+
+references:
+  - MVP.md Section 5 (Notifications)
+  - MVP.md Appendix B (Brand Voice)

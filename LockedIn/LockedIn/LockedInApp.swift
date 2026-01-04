@@ -130,6 +130,10 @@ struct LockedInApp: App {
             let durationMinutes = Int(workout.duration / 60)
             guard durationMinutes > 0 else { continue }
 
+            // Calculate potential earned (before cap)
+            let potentialEarned = Int(Double(durationMinutes) * bankState.difficulty.screenMinutesPerWorkoutMinute)
+            let balanceBefore = bankState.balance
+
             // Get workout type display name
             let source = HealthKitManager.displayName(for: workout.workoutActivityType)
 
@@ -139,6 +143,29 @@ struct LockedInApp: App {
                 source: source,
                 timestamp: workout.endDate
             )
+
+            // Calculate actual earned (may be capped)
+            let actualEarned = bankState.balance - balanceBefore
+
+            // Post notification if enabled
+            if SharedState.notifyWorkoutSync && actualEarned > 0 {
+                if actualEarned < potentialEarned {
+                    // Some earnings were lost to cap
+                    NotificationManager.postWorkoutSyncedCapped(
+                        earnedMinutes: actualEarned,
+                        workoutMinutes: potentialEarned
+                    )
+                } else {
+                    NotificationManager.postWorkoutSynced(
+                        earnedMinutes: actualEarned,
+                        newBalance: bankState.balance,
+                        maxBalance: bankState.maxBalance
+                    )
+                }
+            }
+
+            // Reset notification flags if balance now above thresholds
+            SharedState.resetNotificationFlags(for: bankState.balance)
 
             // Mark as processed
             SharedState.markWorkoutProcessed(workoutID)

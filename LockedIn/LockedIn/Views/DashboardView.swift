@@ -13,6 +13,7 @@ struct DashboardView: View {
     @State private var showActivityHistory = false
     @State private var showDebugLogs = false
     @State private var showDifficultyPicker = false
+    @State private var showSettings = false
 
     var body: some View {
         NavigationStack {
@@ -85,6 +86,9 @@ struct DashboardView: View {
             .navigationDestination(isPresented: $showDebugLogs) {
                 DebugLogView()
             }
+            .navigationDestination(isPresented: $showSettings) {
+                SettingsView(accentColor: bankState.difficulty.color)
+            }
             .sheet(isPresented: $showDifficultyPicker) {
                 DifficultyPickerSheet(
                     currentDifficulty: bankState.difficulty,
@@ -111,6 +115,14 @@ struct DashboardView: View {
                 }
 
             Spacer()
+
+            Button {
+                showSettings = true
+            } label: {
+                Image(systemName: "gearshape")
+                    .font(.system(size: 18, weight: .medium))
+                    .foregroundStyle(AppColor.textSecondary)
+            }
         }
     }
 
