@@ -51,13 +51,19 @@ enum SharedState {
         set { defaults.set(newValue, forKey: Keys.balance) }
     }
 
-    /// Starting balance for new users (TEMP: 2 minutes for testing)
-    static let defaultStartingBalance = 2
+    /// Starting balance for new users (60 minutes = 1 hour)
+    static let defaultStartingBalance = 60
 
     /// Whether the app has been launched before (distinguishes fresh install from zero balance)
     static var hasLaunched: Bool {
         get { defaults.bool(forKey: Keys.hasLaunched) }
         set { defaults.set(newValue, forKey: Keys.hasLaunched) }
+    }
+
+    /// Whether user has completed onboarding (show dashboard vs onboarding)
+    static var hasCompletedOnboarding: Bool {
+        get { defaults.bool(forKey: Keys.hasCompletedOnboarding) }
+        set { defaults.set(newValue, forKey: Keys.hasCompletedOnboarding) }
     }
 
     // MARK: - Difficulty
@@ -336,6 +342,7 @@ enum SharedState {
     private enum Keys {
         static let balance = "balance"
         static let hasLaunched = "hasLaunched"
+        static let hasCompletedOnboarding = "hasCompletedOnboarding"
         static let difficulty = "difficulty"
         static let selection = "selection"
         static let isMonitoring = "isMonitoring"
