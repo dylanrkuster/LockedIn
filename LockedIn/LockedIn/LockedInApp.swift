@@ -16,29 +16,31 @@ struct LockedInApp: App {
 
     var body: some Scene {
         WindowGroup {
-            if showOnboarding {
-                OnboardingView(
-                    familyControlsManager: familyControlsManager,
-                    healthKitManager: healthKitManager,
-                    onComplete: { difficulty in
-                        // Apply the selected difficulty and starting balance
-                        bankState.difficulty = difficulty
-                        bankState.balance = difficulty.startingBalance
-                        // Mark onboarding complete AFTER state is set
-                        // (ensures consistent state if app killed mid-completion)
-                        SharedState.hasCompletedOnboarding = true
-                        SharedState.synchronize()
-                        // Transition to dashboard
-                        withAnimation {
-                            showOnboarding = false
+            SplashView {
+                if showOnboarding {
+                    OnboardingView(
+                        familyControlsManager: familyControlsManager,
+                        healthKitManager: healthKitManager,
+                        onComplete: { difficulty in
+                            // Apply the selected difficulty and starting balance
+                            bankState.difficulty = difficulty
+                            bankState.balance = difficulty.startingBalance
+                            // Mark onboarding complete AFTER state is set
+                            // (ensures consistent state if app killed mid-completion)
+                            SharedState.hasCompletedOnboarding = true
+                            SharedState.synchronize()
+                            // Transition to dashboard
+                            withAnimation {
+                                showOnboarding = false
+                            }
+                            // Setup blocking and health after onboarding
+                            setupBlocking()
+                            setupHealthKit()
                         }
-                        // Setup blocking and health after onboarding
-                        setupBlocking()
-                        setupHealthKit()
-                    }
-                )
-            } else {
-                dashboardContent
+                    )
+                } else {
+                    dashboardContent
+                }
             }
         }
     }

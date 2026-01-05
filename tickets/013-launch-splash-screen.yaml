@@ -1,0 +1,26 @@
+id: '013'
+type: feature
+title: Add launch splash screen
+priority: P3
+complexity: trivial
+
+po_notes: |
+  - Polish item, not core loop
+  - Strengthens brand presence on app open
+  - Keeps brutalist aesthetic (icon on black, nothing else)
+  - 2-second minimum is intentional "weight" - makes the app feel deliberate
+  - Dynamic icon reinforces "difficulty as identity"
+
+description: |
+  App launches straight into content with no branding moment.
+  Add a minimal splash screen showing the current app icon for 2 seconds
+  before fading into the main experience. Icon must match the user's
+  difficulty setting (icon changes per difficulty level).
+
+acceptance_criteria:
+  - Splash screen displays current app icon centered on black background
+  - Icon reflects user's difficulty setting (reads from SharedState)
+  - Minimum display duration of 2 seconds
+  - Smooth fade-out transition to main content
+  - Works correctly whether user sees onboarding or dashboard
+  - No text, no loading indicators, no animations on the icon itself
