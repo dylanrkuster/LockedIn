@@ -4,6 +4,7 @@
 //
 
 import HealthKit
+import StoreKit
 import SwiftUI
 
 @main
@@ -169,8 +170,9 @@ struct LockedInApp: App {
             // Reset notification flags if balance now above thresholds
             SharedState.resetNotificationFlags(for: bankState.balance)
 
-            // Mark as processed
+            // Mark as processed and increment workout count
             SharedState.markWorkoutProcessed(workoutID)
+            SharedState.workoutCount += 1
         }
     }
 
@@ -206,6 +208,23 @@ struct LockedInApp: App {
         Task {
             await syncWorkouts()
         }
+
+        // Prompt for App Store review after 10th workout
+        if SharedState.workoutCount >= 10 && !SharedState.hasPromptedReview {
+            requestAppStoreReview()
+        }
+    }
+
+    // MARK: - App Store Review
+
+    private func requestAppStoreReview() {
+        guard let scene = UIApplication.shared.connectedScenes
+            .first(where: { $0.activationState == .foregroundActive }) as? UIWindowScene
+        else { return }
+
+        SKStoreReviewController.requestReview(in: scene)
+        SharedState.hasPromptedReview = true
+        SharedState.synchronize()
     }
 
     // MARK: - Blocking Setup

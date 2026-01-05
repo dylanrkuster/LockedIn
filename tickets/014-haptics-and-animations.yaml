@@ -1,0 +1,111 @@
+id: '014'
+type: improvement
+title: Haptic Feedback & Tasteful Animations
+priority: P2
+complexity: standard
+status: in_progress
+
+po_notes: |
+  - Polish layer for MVP launch, not core functionality
+  - Must respect brutalist design philosophy: functional feedback, not decoration
+  - "Motion only for state changes, never for decoration" (Appendix D)
+  - No celebration energy - these are mechanical confirmations, not rewards
+  - Haptics create tactile weight to match visual weight of UI
+  - Standard iOS UX expectation for interactive elements
+
+description: |
+  App feels flat without tactile feedback. Buttons don't confirm taps,
+  toggles don't click, selections don't register. Add functional haptics
+  for direct interactions and subtle animations for state changes.
+
+acceptance_criteria:
+  - Button taps provide light haptic feedback
+  - Toggle switches provide selection haptic on change
+  - Difficulty card selection provides selection haptic
+  - Destructive actions (reset, difficulty downgrade) provide warning haptic
+  - Progress bar animates smoothly when balance changes
+  - Difficulty selection cards animate on tap
+  - Haptics feel mechanical/functional, not playful
+
+scope_boundaries:
+  in_scope:
+    - Primary CTA buttons (Get Started, Continue, Grant Access, etc.)
+    - Difficulty card selection (onboarding + picker sheet)
+    - Toggle switches in Settings
+    - Destructive action confirmations
+    - Progress bar fill animation
+    - Difficulty badge tap feedback
+
+  out_of_scope:
+    - Balance change haptics (happens in background extension)
+    - Lock state haptics (shield extension limitations)
+    - Screen transition animations (decoration, not function)
+    - Activity row entrance animations (decoration)
+    - Sound effects
+    - Spring/bouncy physics (too playful for brutalist aesthetic)
+
+implementation_notes: |
+  ## Haptic Generators
+
+  Create a lightweight HapticManager utility:
+  ```swift
+  import UIKit
+
+  enum HapticManager {
+      static func impact(_ style: UIImpactFeedbackGenerator.FeedbackStyle = .light) {
+          UIImpactFeedbackGenerator(style: style).impactOccurred()
+      }
+
+      static func selection() {
+          UISelectionFeedbackGenerator().selectionChanged()
+      }
+
+      static func notification(_ type: UINotificationFeedbackGenerator.FeedbackType) {
+          UINotificationFeedbackGenerator().notificationOccurred(type)
+      }
+  }
+  ```
+
+  ## Usage Patterns
+
+  | Interaction | Haptic Call |
+  |-------------|-------------|
+  | Button tap | `HapticManager.impact(.light)` |
+  | Toggle change | `HapticManager.selection()` |
+  | Difficulty select | `HapticManager.selection()` |
+  | Destructive confirm | `HapticManager.notification(.warning)` |
+
+  ## Animation Patterns
+
+  Progress bar fill:
+  ```swift
+  .animation(.easeInOut(duration: 0.4), value: progress)
+  ```
+
+  Difficulty card selection:
+  ```swift
+  withAnimation(.easeInOut(duration: 0.15)) {
+      selectedDifficulty = difficulty
+  }
+  ```
+  (Already exists in onboarding, ensure consistency in picker sheet)
+
+  ## Files to Modify
+
+  New file:
+  - LockedIn/LockedIn/HapticManager.swift
+
+  Existing files:
+  - OnboardingView.swift (button haptics, difficulty selection)
+  - DifficultyPickerSheet.swift (selection haptics, warning haptics)
+  - SettingsView.swift (toggle haptics)
+  - ProgressBar.swift (fill animation)
+  - BalanceDisplay.swift (difficulty badge tap haptic)
+  - Any reusable button components
+
+  ## Design Constraints
+
+  - Haptics must feel MECHANICAL, not celebratory
+  - Animation curves: .easeInOut or .linear only (no .spring)
+  - Animation durations: 0.15-0.4s max (quick, decisive)
+  - No delays or staged animations

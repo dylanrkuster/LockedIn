@@ -20,7 +20,9 @@ struct DifficultyBadge: View {
         badgeContent
             .contentShape(Rectangle())
             .onTapGesture {
-                onTap?()
+                guard let onTap else { return }
+                HapticManager.impact()
+                onTap()
             }
             .accessibilityElement(children: .combine)
             .accessibilityLabel("Difficulty \(difficulty.rawValue), ratio \(difficulty.ratioDisplay)")
