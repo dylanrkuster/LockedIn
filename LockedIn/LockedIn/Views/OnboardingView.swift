@@ -46,17 +46,12 @@ struct OnboardingView: View {
         self._hasGrantedScreenTime = State(initialValue: familyControlsManager.isAuthorized)
     }
 
-    // Progress bar: excludes welcome screen (4 steps: appSelection, difficulty, permissions, activation)
-    private func stepProgress(for step: OnboardingStep) -> Double {
-        guard step != .welcome else { return 0 }
-        // Steps 1-4 mapped to 0.25, 0.5, 0.75, 1.0
-        return Double(step.rawValue) / 4.0
+    // Step number for display (excludes welcome screen, so 1-4)
+    private func stepNumber(for step: OnboardingStep) -> Int {
+        step.rawValue  // welcome=0, appSelection=1, difficulty=2, permissions=3, activation=4
     }
 
-    // White before difficulty screen, difficulty color on and after difficulty screen
-    private func progressBarColor(for step: OnboardingStep) -> Color {
-        step.rawValue >= OnboardingStep.difficulty.rawValue ? selectedDifficulty.color : AppColor.textPrimary
-    }
+    private let totalSteps = 4
 
     var body: some View {
         NavigationStack(path: $navigationPath) {
@@ -101,20 +96,41 @@ struct OnboardingView: View {
                 .ignoresSafeArea()
 
             VStack(spacing: 0) {
-                // Progress indicator
-                stepProgressBar(for: step)
-                    .padding(.horizontal, AppSpacing.lg)
-                    .padding(.top, AppSpacing.md)
+                // Step indicator and back button row
+                HStack {
+                    // Back button - hidden on activation
+                    if step != .activation {
+                        Button {
+                            navigationPath.removeLast()
+                        } label: {
+                            Image(systemName: "chevron.left")
+                                .font(.system(size: 18, weight: .medium))
+                                .foregroundStyle(AppColor.textTertiary)
+                                .frame(width: 44, height: 44)
+                                .contentShape(Rectangle())
+                        }
+                        .buttonStyle(.plain)
+                    } else {
+                        Spacer()
+                            .frame(width: 44)
+                    }
 
-                // Back button (in content, not toolbar) - hidden on activation
-                if step != .activation {
-                    backButton
-                        .padding(.horizontal, AppSpacing.lg)
-                        .padding(.top, AppSpacing.sm)
-                } else {
                     Spacer()
-                        .frame(height: AppSpacing.md)
+
+                    // Step indicator
+                    Text("\(stepNumber(for: step)) OF \(totalSteps)")
+                        .font(AppFont.mono(12))
+                        .tracking(2)
+                        .foregroundStyle(AppColor.textTertiary)
+
+                    Spacer()
+
+                    // Placeholder for symmetry
+                    Spacer()
+                        .frame(width: 44)
                 }
+                .padding(.horizontal, AppSpacing.lg)
+                .padding(.top, AppSpacing.md)
 
                 // Screen content
                 screenContent(for: step)
@@ -123,40 +139,6 @@ struct OnboardingView: View {
         .navigationBarBackButtonHidden(true)
         .toolbarBackground(.hidden, for: .navigationBar)
         .background(SwipeBackGestureEnabler())
-    }
-
-    private func stepProgressBar(for step: OnboardingStep) -> some View {
-        GeometryReader { geometry in
-            ZStack(alignment: .leading) {
-                // Track
-                Rectangle()
-                    .fill(AppColor.border)
-
-                // Fill
-                Rectangle()
-                    .fill(progressBarColor(for: step))
-                    .frame(width: geometry.size.width * stepProgress(for: step))
-            }
-        }
-        .frame(height: 3)
-        .accessibilityLabel("Step \(step.rawValue) of 4")
-    }
-
-    private var backButton: some View {
-        HStack {
-            Button {
-                navigationPath.removeLast()
-            } label: {
-                Image(systemName: "chevron.left")
-                    .font(.system(size: 18, weight: .medium))
-                    .foregroundStyle(AppColor.textTertiary)
-                    .frame(width: 44, height: 44)
-                    .contentShape(Rectangle())
-            }
-            .buttonStyle(.plain)
-
-            Spacer()
-        }
     }
 
     // MARK: - Screen Content
