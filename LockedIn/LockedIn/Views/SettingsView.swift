@@ -75,7 +75,10 @@ struct SettingsView: View {
 
             // Back button aligned left
             HStack {
-                Button(action: { dismiss() }) {
+                Button {
+                    HapticManager.impact()
+                    dismiss()
+                } label: {
                     Image(systemName: "chevron.left")
                         .font(.system(size: 16, weight: .medium))
                         .foregroundStyle(AppColor.textTertiary)
@@ -121,6 +124,7 @@ struct SettingsView: View {
                 .labelsHidden()
                 .tint(accentColor)
                 .onChange(of: isOn.wrappedValue) { _, newValue in
+                    HapticManager.selection()
                     onChange(newValue)
                     SharedState.synchronize()
                 }

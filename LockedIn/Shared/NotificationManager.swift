@@ -57,7 +57,7 @@ enum NotificationManager {
         post(
             identifier: Identifier.workoutSynced,
             title: appTitle,
-            body: "+\(earnedMinutes) min. Bank: \(newBalance)/\(maxBalance)."
+            body: "Workout complete. +\(earnedMinutes) min of screen time. Bank: \(newBalance)/\(maxBalance)."
         )
     }
 
@@ -69,7 +69,7 @@ enum NotificationManager {
         post(
             identifier: Identifier.workoutSynced,
             title: appTitle,
-            body: "+\(earnedMinutes) of \(workoutMinutes) min. Bank full."
+            body: "Workout complete. +\(earnedMinutes) min of screen time. Bank full."
         )
     }
 

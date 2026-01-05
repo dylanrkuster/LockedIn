@@ -38,6 +38,7 @@ struct ProgressBar: View {
                     Rectangle()
                         .fill(accentColor)
                         .frame(width: geometry.size.width * min(progress, 1.0))
+                        .animation(.easeInOut(duration: 0.4), value: progress)
                 }
             }
             .frame(height: 4)

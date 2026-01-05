@@ -303,6 +303,20 @@ enum SharedState {
         appTokenToName[tokenKey]
     }
 
+    // MARK: - App Store Review
+
+    /// Total workouts processed (for review prompt trigger)
+    static var workoutCount: Int {
+        get { defaults.integer(forKey: Keys.workoutCount) }
+        set { defaults.set(newValue, forKey: Keys.workoutCount) }
+    }
+
+    /// Whether we've already prompted for App Store review
+    static var hasPromptedReview: Bool {
+        get { defaults.bool(forKey: Keys.hasPromptedReview) }
+        set { defaults.set(newValue, forKey: Keys.hasPromptedReview) }
+    }
+
     // MARK: - Notification Settings
 
     /// Whether to notify at 5 min remaining (default: true)
@@ -431,6 +445,10 @@ enum SharedState {
         static let notified5MinDate = "notified5MinDate"
         static let notified15MinToday = "notified15MinToday"
         static let notified15MinDate = "notified15MinDate"
+
+        // App Store review
+        static let workoutCount = "workoutCount"
+        static let hasPromptedReview = "hasPromptedReview"
     }
 
     // MARK: - Sync

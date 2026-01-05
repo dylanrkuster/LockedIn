@@ -101,6 +101,7 @@ struct OnboardingView: View {
                     // Back button - hidden on activation
                     if step != .activation {
                         Button {
+                            HapticManager.impact()
                             navigationPath.removeLast()
                         } label: {
                             Image(systemName: "chevron.left")
@@ -306,6 +307,7 @@ private struct AppSelectionScreen: View {
 
             // Choose apps button
             Button {
+                HapticManager.impact()
                 showPicker = true
             } label: {
                 HStack(spacing: AppSpacing.sm) {
@@ -418,6 +420,7 @@ private struct DifficultyScreen: View {
                         isSelected: difficulty == selectedDifficulty
                     )
                     .onTapGesture {
+                        HapticManager.selection()
                         withAnimation(.easeInOut(duration: 0.15)) {
                             selectedDifficulty = difficulty
                         }
@@ -635,7 +638,10 @@ private struct PermissionBlock: View {
                 .frame(maxWidth: .infinity)
                 .frame(height: 48)
             } else {
-                Button(action: onRequest) {
+                Button {
+                    HapticManager.impact()
+                    onRequest()
+                } label: {
                     Text("GRANT ACCESS")
                         .font(AppFont.label(13))
                         .tracking(2)
@@ -753,7 +759,10 @@ private struct OnboardingButton: View {
     let action: () -> Void
 
     var body: some View {
-        Button(action: action) {
+        Button {
+            HapticManager.impact()
+            action()
+        } label: {
             Text(title)
                 .font(AppFont.label(13))
                 .tracking(2)

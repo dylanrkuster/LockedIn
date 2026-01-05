@@ -36,6 +36,7 @@ struct DifficultyPickerSheet: View {
                         willLoseMinutes: minutesLost(for: difficulty) > 0
                     )
                     .onTapGesture {
+                        HapticManager.selection()
                         handleSelection(difficulty)
                     }
                 }
@@ -57,6 +58,7 @@ struct DifficultyPickerSheet: View {
                 pendingDifficulty = nil
             }
             Button("Change", role: .destructive) {
+                HapticManager.notification(.warning)
                 onSelect(difficulty)
                 dismiss()
             }
@@ -76,6 +78,7 @@ struct DifficultyPickerSheet: View {
             Spacer()
 
             Button {
+                HapticManager.impact()
                 dismiss()
             } label: {
                 Image(systemName: "xmark")
