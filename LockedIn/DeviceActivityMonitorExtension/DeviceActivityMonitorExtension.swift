@@ -28,8 +28,9 @@ class DeviceActivityMonitorExtension: DeviceActivityMonitor {
         ExtensionLogger.logInterval("intervalDidStart", message: "activity=\(activity.rawValue)")
         SharedState.updateHeartbeat()
 
-        // New monitoring interval (new day) - sync shield state and reset daily counter
+        // New monitoring interval (new day) - reset daily counter and calibration timestamp
         SharedState.usedMinutesToday = 0
+        SharedState.monitoringStartedAt = Date().timeIntervalSince1970
         SharedState.synchronize()
         syncShieldState()
     }
@@ -65,6 +66,21 @@ class DeviceActivityMonitorExtension: DeviceActivityMonitor {
         // Get current tracking state
         let previousUsed = SharedState.usedMinutesToday
         let currentBalance = SharedState.balance
+
+        // Calibration: events within first 10 seconds of monitoring start are retroactive.
+        // DeviceActivity fires events for ALL thresholds already passed (prior usage today).
+        // These fire within milliseconds; real usage events take 60+ seconds.
+        let calibrationWindow: TimeInterval = 10
+        let timeSinceMonitoringStarted = Date().timeIntervalSince1970 - SharedState.monitoringStartedAt
+
+        if timeSinceMonitoringStarted < calibrationWindow {
+            // Sync our counter to device's counter without deducting
+            SharedState.usedMinutesToday = max(SharedState.usedMinutesToday, minute)
+            ExtensionLogger.logInterval("calibration", message: "synced to minute \(minute), time=\(String(format: "%.1f", timeSinceMonitoringStarted))s")
+            SharedState.debugExtensionMessage = "Calibrated: min=\(minute)"
+            SharedState.synchronize()
+            return
+        }
 
         // Calculate deduction using pure function
         let result = TrackingLogic.calculateDeduction(

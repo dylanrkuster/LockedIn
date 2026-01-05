@@ -38,7 +38,7 @@ struct ActivitySection: View {
                             .underline()
                             .font(AppFont.label(10))
                             .tracking(2)
-                            .foregroundStyle(AppColor.textTertiary)
+                            .foregroundStyle(accentColor)
                     }
                     .buttonStyle(.plain)
                 }

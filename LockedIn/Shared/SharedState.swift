@@ -101,6 +101,12 @@ enum SharedState {
         set { defaults.set(newValue, forKey: Keys.isMonitoring) }
     }
 
+    /// Timestamp when monitoring started (for calibration window)
+    static var monitoringStartedAt: TimeInterval {
+        get { defaults.double(forKey: Keys.monitoringStartedAt) }
+        set { defaults.set(newValue, forKey: Keys.monitoringStartedAt) }
+    }
+
     /// Last time we checked/updated usage
     static var lastUsageCheck: Date? {
         get { defaults.object(forKey: Keys.lastUsageCheck) as? Date }
@@ -452,6 +458,7 @@ enum SharedState {
         static let difficulty = "difficulty"
         static let selection = "selection"
         static let isMonitoring = "isMonitoring"
+        static let monitoringStartedAt = "monitoringStartedAt"
         static let lastUsageCheck = "lastUsageCheck"
         static let transactions = "transactions"
         static let pendingTransactions = "pendingTransactions"

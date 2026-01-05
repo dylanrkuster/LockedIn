@@ -11,14 +11,21 @@ import Foundation
 // MARK: - Analytics Manager
 
 enum AnalyticsManager {
-    /// Track an analytics event
+    /// Background queue for analytics - never block the main thread
+    private static let queue = DispatchQueue(label: "com.lockedin.analytics", qos: .utility)
+
+    /// Track an analytics event (fire-and-forget, never blocks UI)
     static func track(_ event: AnalyticsEvent) {
-        Analytics.logEvent(event.name, parameters: event.parameters)
+        queue.async {
+            Analytics.logEvent(event.name, parameters: event.parameters)
+        }
     }
 
     /// Set a user property (persists across sessions)
     static func setUserProperty(_ value: String, forName name: String) {
-        Analytics.setUserProperty(value, forName: name)
+        queue.async {
+            Analytics.setUserProperty(value, forName: name)
+        }
     }
 
     /// Set difficulty user property

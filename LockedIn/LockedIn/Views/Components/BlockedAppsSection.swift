@@ -10,6 +10,7 @@ import SwiftUI
 
 struct BlockedAppsSection: View {
     @Bindable var manager: FamilyControlsManager
+    let accentColor: Color
     @State private var showPicker = false
     @State private var showDeniedAlert = false
     @State private var isRequestingAuth = false
@@ -30,13 +31,13 @@ struct BlockedAppsSection: View {
                         if isRequestingAuth {
                             ProgressView()
                                 .scaleEffect(0.7)
-                                .tint(AppColor.textTertiary)
+                                .tint(accentColor)
                         }
                         Text("EDIT")
                             .underline()
                             .font(AppFont.label(10))
                             .tracking(2)
-                            .foregroundStyle(AppColor.textTertiary)
+                            .foregroundStyle(accentColor)
                     }
                 }
                 .buttonStyle(.plain)
@@ -136,7 +137,7 @@ private struct BlockedAppsSectionPreview: View {
     @State private var manager = FamilyControlsManager()
 
     var body: some View {
-        BlockedAppsSection(manager: manager)
+        BlockedAppsSection(manager: manager, accentColor: Difficulty.medium.color)
             .padding(24)
             .background(Color.black)
     }

@@ -186,15 +186,9 @@ struct OnboardingView: View {
                 hasGrantedScreenTime: hasGrantedScreenTime,
                 hasRequestedHealth: hasRequestedHealth,
                 hasGrantedNotifications: hasGrantedNotifications,
-                onRequestScreenTime: {
-                    Task { await requestScreenTimeAccess() }
-                },
-                onRequestHealth: {
-                    Task { await requestHealthAccess() }
-                },
-                onRequestNotifications: {
-                    Task { await requestNotificationAccess() }
-                },
+                onRequestScreenTime: { await requestScreenTimeAccess() },
+                onRequestHealth: { await requestHealthAccess() },
+                onRequestNotifications: { await requestNotificationAccess() },
                 onContinue: {
                     AnalyticsManager.track(.onboardingPermissionsGranted(
                         screenTime: hasGrantedScreenTime,
@@ -308,6 +302,7 @@ private struct AppSelectionScreen: View {
 
     @State private var showPicker = false
     @State private var showDeniedAlert = false
+    @State private var isRequestingAuthorization = false
 
     var body: some View {
         VStack(spacing: 0) {
@@ -340,9 +335,15 @@ private struct AppSelectionScreen: View {
                 }
             } label: {
                 HStack(spacing: AppSpacing.sm) {
-                    Image(systemName: "apps.iphone")
-                        .font(.system(size: 18))
-                    Text("CHOOSE APPS")
+                    if isRequestingAuthorization {
+                        ProgressView()
+                            .tint(AppColor.textPrimary)
+                            .scaleEffect(0.9)
+                    } else {
+                        Image(systemName: "apps.iphone")
+                            .font(.system(size: 18))
+                    }
+                    Text(isRequestingAuthorization ? "LOADING..." : "CHOOSE APPS")
                         .font(AppFont.label(13))
                         .tracking(2)
                 }
@@ -356,6 +357,7 @@ private struct AppSelectionScreen: View {
                 )
             }
             .buttonStyle(.plain)
+            .disabled(isRequestingAuthorization)
             .padding(.horizontal, AppSpacing.lg)
 
             Spacer()
@@ -407,6 +409,10 @@ private struct AppSelectionScreen: View {
             showPicker = true
             return
         }
+
+        // Show loading state immediately
+        isRequestingAuthorization = true
+        defer { isRequestingAuthorization = false }
 
         // Request authorization
         let authorized = await manager.requestAuthorizationIfNeeded()
@@ -597,10 +603,14 @@ private struct PermissionsScreen: View {
     let hasGrantedScreenTime: Bool
     let hasRequestedHealth: Bool  // Note: Can't detect actual grant status due to HealthKit privacy
     let hasGrantedNotifications: Bool
-    let onRequestScreenTime: () -> Void
-    let onRequestHealth: () -> Void
-    let onRequestNotifications: () -> Void
+    let onRequestScreenTime: () async -> Void
+    let onRequestHealth: () async -> Void
+    let onRequestNotifications: () async -> Void
     let onContinue: () -> Void
+
+    @State private var isLoadingScreenTime = false
+    @State private var isLoadingHealth = false
+    @State private var isLoadingNotifications = false
 
     private var canContinue: Bool {
         hasGrantedScreenTime && hasRequestedHealth
@@ -626,7 +636,14 @@ private struct PermissionsScreen: View {
                 subtitle: "Required to block apps.",
                 isGranted: hasGrantedScreenTime,
                 isRequired: true,
-                onRequest: onRequestScreenTime
+                isLoading: isLoadingScreenTime,
+                onRequest: {
+                    Task {
+                        isLoadingScreenTime = true
+                        await onRequestScreenTime()
+                        isLoadingScreenTime = false
+                    }
+                }
             )
             .padding(.horizontal, AppSpacing.lg)
 
@@ -639,7 +656,14 @@ private struct PermissionsScreen: View {
                 subtitle: "Required to track workouts.",
                 isGranted: hasRequestedHealth,
                 isRequired: true,
-                onRequest: onRequestHealth
+                isLoading: isLoadingHealth,
+                onRequest: {
+                    Task {
+                        isLoadingHealth = true
+                        await onRequestHealth()
+                        isLoadingHealth = false
+                    }
+                }
             )
             .padding(.horizontal, AppSpacing.lg)
 
@@ -652,7 +676,14 @@ private struct PermissionsScreen: View {
                 subtitle: "Get useful reminders.",
                 isGranted: hasGrantedNotifications,
                 isRequired: false,
-                onRequest: onRequestNotifications
+                isLoading: isLoadingNotifications,
+                onRequest: {
+                    Task {
+                        isLoadingNotifications = true
+                        await onRequestNotifications()
+                        isLoadingNotifications = false
+                    }
+                }
             )
             .padding(.horizontal, AppSpacing.lg)
 
@@ -677,6 +708,7 @@ private struct PermissionBlock: View {
     let subtitle: String
     let isGranted: Bool
     let isRequired: Bool
+    let isLoading: Bool
     let onRequest: () -> Void
 
     var body: some View {
@@ -718,19 +750,27 @@ private struct PermissionBlock: View {
                     HapticManager.impact()
                     onRequest()
                 } label: {
-                    Text("GRANT ACCESS")
-                        .font(AppFont.label(13))
-                        .tracking(2)
-                        .foregroundStyle(AppColor.textPrimary)
-                        .frame(maxWidth: .infinity)
-                        .frame(height: 48)
-                        .contentShape(Rectangle())
-                        .overlay(
-                            Rectangle()
-                                .stroke(AppColor.textPrimary, lineWidth: 1)
-                        )
+                    HStack(spacing: AppSpacing.sm) {
+                        if isLoading {
+                            ProgressView()
+                                .tint(AppColor.textPrimary)
+                                .scaleEffect(0.8)
+                        }
+                        Text(isLoading ? "REQUESTING..." : "GRANT ACCESS")
+                            .font(AppFont.label(13))
+                            .tracking(2)
+                            .foregroundStyle(AppColor.textPrimary)
+                    }
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 48)
+                    .contentShape(Rectangle())
+                    .overlay(
+                        Rectangle()
+                            .stroke(AppColor.textPrimary, lineWidth: 1)
+                    )
                 }
                 .buttonStyle(.plain)
+                .disabled(isLoading)
             }
         }
         .padding(AppSpacing.lg)

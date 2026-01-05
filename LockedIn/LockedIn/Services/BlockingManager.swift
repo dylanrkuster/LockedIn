@@ -103,6 +103,7 @@ final class BlockingManager {
 
         isMonitoring = true
         SharedState.isMonitoring = true
+        SharedState.monitoringStartedAt = Date().timeIntervalSince1970
         SharedState.synchronize()
     }
 

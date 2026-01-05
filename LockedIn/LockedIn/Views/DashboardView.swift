@@ -72,7 +72,7 @@ struct DashboardView: View {
                         divider
 
                         // Blocked apps
-                        BlockedAppsSection(manager: familyControlsManager)
+                        BlockedAppsSection(manager: familyControlsManager, accentColor: bankState.difficulty.color)
                             .padding(.horizontal, AppSpacing.lg)
                             .padding(.vertical, AppSpacing.md)
                     }
