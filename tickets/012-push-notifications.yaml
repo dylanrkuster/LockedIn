@@ -3,7 +3,7 @@ type: feature
 title: Add push notifications for balance warnings and workout sync
 priority: P1
 complexity: standard
-status: in_progress
+status: completed
 
 po_notes: |
   - Strengthens core loop: notifications create accountability and confirm earnings

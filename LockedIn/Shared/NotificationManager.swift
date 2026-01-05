@@ -32,7 +32,7 @@ enum NotificationManager {
         post(
             identifier: Identifier.lowBalance5Min,
             title: appTitle,
-            body: "5 min left. The block is coming."
+            body: "5 min remaining."
         )
     }
 

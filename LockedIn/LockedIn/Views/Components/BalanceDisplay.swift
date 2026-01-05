@@ -30,7 +30,7 @@ struct BalanceDisplay: View {
                 .accessibilityLabel(accessibilityText)
 
             // Label
-            Text("REMAINING")
+            Text("MINUTES REMAINING")
                 .font(AppFont.label(12))
                 .tracking(6)
                 .foregroundStyle(AppColor.textSecondary)
