@@ -1,0 +1,214 @@
+id: '015'
+type: feature
+title: Google Analytics Integration
+priority: P1
+complexity: standard
+status: closed
+
+po_notes: |
+  - Critical for launch: need data from day 1 users to iterate
+  - Requires updating privacy policy and App Store description
+  - Remove "no analytics" claim from marketing copy
+  - Track meaningful product events, not vanity metrics
+  - Privacy-conscious: no specific app names, no PII, no ad identifiers
+  - Firebase Analytics (Google Analytics for Firebase) is the iOS SDK
+
+description: |
+  No visibility into user behavior. Can't answer basic questions:
+  Where do users drop off in onboarding? What difficulty do they pick?
+  How often do users hit zero balance? Do they recover or churn?
+
+  Add Google Analytics to track meaningful product events from day 1.
+
+acceptance_criteria:
+  - Firebase Analytics SDK integrated
+  - AnalyticsManager service created for centralized event tracking
+  - All onboarding funnel events tracked
+  - All core loop events tracked
+  - All engagement events tracked
+  - ANALYTICS.md created documenting all events, rationale, and example insights
+  - Privacy policy updated to reflect analytics usage
+  - App Store description updated (remove "no analytics" claim)
+  - No PII or specific app names collected
+
+scope_boundaries:
+  in_scope:
+    - Firebase Analytics SDK setup
+    - AnalyticsManager utility
+    - Onboarding funnel events
+    - Core loop events (workout, depletion, recovery)
+    - Engagement events (settings, difficulty changes)
+    - Milestone events (first workout, first block, review prompt)
+    - ANALYTICS.md documentation
+
+  out_of_scope:
+    - User-facing analytics dashboard
+    - A/B testing infrastructure
+    - Crash reporting (separate ticket if needed)
+    - Revenue/monetization tracking (no payments yet)
+
+implementation_notes: |
+  ## SDK Setup
+
+  Add Firebase Analytics via SPM:
+  ```
+  https://github.com/firebase/firebase-ios-sdk
+  ```
+
+  Products needed: FirebaseAnalytics
+
+  ## AnalyticsManager
+
+  Create centralized service:
+  ```swift
+  import FirebaseAnalytics
+
+  enum AnalyticsManager {
+      static func track(_ event: AnalyticsEvent) {
+          Analytics.logEvent(event.name, parameters: event.parameters)
+      }
+  }
+
+  enum AnalyticsEvent {
+      case onboardingStarted
+      case onboardingAppsSelected(count: Int)
+      case onboardingDifficultySelected(difficulty: String)
+      case onboardingPermissionsGranted(screenTime: Bool, health: Bool, notifications: Bool)
+      case onboardingCompleted(difficulty: String, appCount: Int)
+
+      case workoutSynced(minutesEarned: Int, workoutType: String, balanceAfter: Int)
+      case balanceDepleted(difficulty: String, daysSinceInstall: Int)
+      case balanceRecovered(minutesToRecover: Int)
+      case shieldDisplayed
+
+      case appForegrounded(balance: Int, difficulty: String)
+      case difficultyChanged(from: String, to: String, balanceLost: Int)
+      case blockedAppsModified(delta: Int)
+      case activityHistoryViewed
+      case settingsOpened
+
+      case reviewPromptShown(workoutCount: Int)
+      case firstWorkoutSynced(minutesEarned: Int)
+      case firstBlockHit(daysSinceInstall: Int)
+
+      var name: String { ... }
+      var parameters: [String: Any]? { ... }
+  }
+  ```
+
+  ## Event Instrumentation Locations
+
+  | Event | File | Location |
+  |-------|------|----------|
+  | onboardingStarted | OnboardingView.swift | WelcomeScreen.onAppear |
+  | onboardingAppsSelected | OnboardingView.swift | AppSelectionScreen continue |
+  | onboardingDifficultySelected | OnboardingView.swift | DifficultyScreen continue |
+  | onboardingPermissionsGranted | OnboardingView.swift | PermissionsScreen continue |
+  | onboardingCompleted | OnboardingView.swift | ActivationScreen onComplete |
+  | workoutSynced | LockedInApp.swift | processNewWorkouts |
+  | balanceDepleted | BankState.swift | when balance hits 0 |
+  | balanceRecovered | BankState.swift | when balance goes 0→positive |
+  | shieldDisplayed | ShieldConfigurationExtension | createConfiguration |
+  | appForegrounded | LockedInApp.swift | willEnterForegroundNotification |
+  | difficultyChanged | DifficultyPickerSheet.swift | onSelect |
+  | blockedAppsModified | FamilyControlsManager.swift | selection didSet |
+  | activityHistoryViewed | ActivitySection.swift | SEE ALL tap |
+  | settingsOpened | DashboardView.swift | settings button tap |
+  | reviewPromptShown | LockedInApp.swift | requestAppStoreReview |
+  | firstWorkoutSynced | LockedInApp.swift | when workoutCount becomes 1 |
+  | firstBlockHit | BankState.swift | first time balance hits 0 |
+
+  ## User Properties (set once)
+
+  ```swift
+  Analytics.setUserProperty(difficulty.rawValue, forName: "difficulty")
+  Analytics.setUserProperty("\(appCount)", forName: "blocked_app_count")
+  ```
+
+  Update these when difficulty or app selection changes.
+
+  ## Privacy Considerations
+
+  - Disable IDFA collection (no ad tracking)
+  - Don't log specific app names (just counts)
+  - Don't log actual usage minutes per app
+  - Don't collect any PII
+
+  ```swift
+  // In AppDelegate or App init
+  Analytics.setAnalyticsCollectionEnabled(true)
+  // IDFA is not collected by default in Firebase Analytics
+  ```
+
+  ## Required Updates
+
+  1. Privacy Policy: Add analytics disclosure
+  2. App Store Description: Remove "no analytics" claim
+  3. App Store Privacy Labels: Update data collection disclosures
+
+documentation_notes: |
+  ## ANALYTICS.md Structure
+
+  Create `/ANALYTICS.md` at project root with:
+
+  ### 1. Overview
+  - Why we track analytics
+  - Privacy stance (what we don't collect)
+  - Firebase console access
+
+  ### 2. Event Reference
+  For each event, document:
+  - Event name
+  - When it fires
+  - Properties collected
+  - Why it matters
+
+  ### 3. Key Metrics & Insights
+  Example insights to derive:
+
+  **Onboarding Conversion:**
+  ```
+  Funnel: started → apps_selected → difficulty_selected → permissions → completed
+  Example: 1000 → 850 → 820 → 600 → 580
+  Insight: 25% drop at permissions step → investigate friction
+  ```
+
+  **Difficulty Distribution:**
+  ```
+  Easy: 15%, Medium: 45%, Hard: 30%, Extreme: 10%
+  Insight: Most users pick Medium (default). Consider if Hard should be default.
+  ```
+
+  **Core Loop Health:**
+  ```
+  balance_depleted events per user per week: 2.3
+  balance_recovered within 24h: 78%
+  Insight: Users hit zero ~2x/week, most recover. 22% may be churn risk.
+  ```
+
+  **Retention Signal:**
+  ```
+  difficulty_changed from Hard→Easy: 12% of Hard users in week 1
+  Insight: Some users overcommit. Consider onboarding copy change.
+  ```
+
+  **Feature Engagement:**
+  ```
+  activity_history_viewed: 34% of DAU
+  settings_opened: 18% of DAU
+  Insight: History is used, settings rarely touched (good - simple app)
+  ```
+
+  ### 4. Dashboard Recommendations
+  Suggested Firebase/GA4 dashboards to create:
+  - Onboarding funnel
+  - Daily active users by difficulty
+  - Core loop events (earn/spend/block)
+  - Retention cohorts
+
+testing_notes: |
+  - Use Firebase DebugView to verify events in real-time
+  - Enable debug mode: -FIRAnalyticsDebugEnabled launch argument
+  - Verify all onboarding events fire in sequence
+  - Verify workout sync triggers event with correct properties
+  - Verify no PII or app names in event payloads

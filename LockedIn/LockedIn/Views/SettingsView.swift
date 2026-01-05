@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import UserNotifications
 
 struct SettingsView: View {
     let accentColor: Color
@@ -15,6 +16,9 @@ struct SettingsView: View {
     @State private var notify5Min = SharedState.notify5MinWarning
     @State private var notify15Min = SharedState.notify15MinWarning
     @State private var notifyWorkout = SharedState.notifyWorkoutSync
+
+    // Notification permission state
+    @State private var notificationsAuthorized = true  // Assume true until checked
 
     var body: some View {
         ZStack {
@@ -32,25 +36,29 @@ struct SettingsView: View {
                 VStack(spacing: 0) {
                     sectionHeader("NOTIFICATIONS")
 
-                    notificationToggle(
-                        title: "5 min warning",
-                        isOn: $notify5Min
-                    ) {
-                        SharedState.notify5MinWarning = $0
-                    }
+                    if notificationsAuthorized {
+                        notificationToggle(
+                            title: "5 min warning",
+                            isOn: $notify5Min
+                        ) {
+                            SharedState.notify5MinWarning = $0
+                        }
 
-                    notificationToggle(
-                        title: "15 min warning",
-                        isOn: $notify15Min
-                    ) {
-                        SharedState.notify15MinWarning = $0
-                    }
+                        notificationToggle(
+                            title: "15 min warning",
+                            isOn: $notify15Min
+                        ) {
+                            SharedState.notify15MinWarning = $0
+                        }
 
-                    notificationToggle(
-                        title: "Workout synced",
-                        isOn: $notifyWorkout
-                    ) {
-                        SharedState.notifyWorkoutSync = $0
+                        notificationToggle(
+                            title: "Workout synced",
+                            isOn: $notifyWorkout
+                        ) {
+                            SharedState.notifyWorkoutSync = $0
+                        }
+                    } else {
+                        notificationsDeniedView
                     }
                 }
                 .padding(.horizontal, AppSpacing.lg)
@@ -61,6 +69,50 @@ struct SettingsView: View {
         .navigationBarBackButtonHidden(true)
         .toolbarBackground(.hidden, for: .navigationBar)
         .background(SwipeBackGestureEnabler())
+        .task {
+            await checkNotificationAuthorization()
+        }
+        .onReceive(NotificationCenter.default.publisher(for: UIApplication.willEnterForegroundNotification)) { _ in
+            Task {
+                await checkNotificationAuthorization()
+            }
+        }
+    }
+
+    // MARK: - Notification Authorization
+
+    private func checkNotificationAuthorization() async {
+        let settings = await UNUserNotificationCenter.current().notificationSettings()
+        await MainActor.run {
+            notificationsAuthorized = settings.authorizationStatus == .authorized
+        }
+    }
+
+    // MARK: - Notifications Denied View
+
+    private var notificationsDeniedView: some View {
+        VStack(alignment: .leading, spacing: AppSpacing.sm) {
+            Text("Notifications are disabled.")
+                .font(AppFont.body)
+                .foregroundStyle(AppColor.textSecondary)
+
+            Button {
+                openNotificationSettings()
+            } label: {
+                Text("Enable in Settings")
+                    .font(AppFont.body)
+                    .foregroundStyle(accentColor)
+                    .underline()
+            }
+            .buttonStyle(.plain)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.vertical, AppSpacing.sm)
+    }
+
+    private func openNotificationSettings() {
+        guard let url = URL(string: UIApplication.openNotificationSettingsURLString) else { return }
+        UIApplication.shared.open(url)
     }
 
     // MARK: - Header

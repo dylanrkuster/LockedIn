@@ -23,14 +23,20 @@ struct BalanceDisplay: View {
     var body: some View {
         VStack(spacing: AppSpacing.md) {
             // THE NUMBER - massive, commanding
-            Text("\(displayBalance)")
-                .font(AppFont.balance)
-                .foregroundStyle(AppColor.textPrimary)
-                .monospacedDigit()
-                .accessibilityLabel(accessibilityText)
+            HStack(alignment: .lastTextBaseline, spacing: 4) {
+                Text("\(displayBalance)")
+                    .font(AppFont.balance)
+                    .foregroundStyle(AppColor.textPrimary)
+                    .monospacedDigit()
+
+                Text("min")
+                    .font(AppFont.mono(24))
+                    .foregroundStyle(AppColor.textPrimary)
+            }
+            .accessibilityLabel(accessibilityText)
 
             // Label
-            Text("MINUTES REMAINING")
+            Text("SCREEN TIME REMAINING")
                 .font(AppFont.label(12))
                 .tracking(6)
                 .foregroundStyle(AppColor.textSecondary)

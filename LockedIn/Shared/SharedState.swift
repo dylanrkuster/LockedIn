@@ -317,6 +317,38 @@ enum SharedState {
         set { defaults.set(newValue, forKey: Keys.hasPromptedReview) }
     }
 
+    // MARK: - Analytics
+
+    /// Install date for calculating days_since_install
+    static var installDate: Date? {
+        get { defaults.object(forKey: Keys.installDate) as? Date }
+        set { defaults.set(newValue, forKey: Keys.installDate) }
+    }
+
+    /// Days since app was installed
+    static var daysSinceInstall: Int {
+        guard let install = installDate else { return 0 }
+        return Calendar.current.dateComponents([.day], from: install, to: Date()).day ?? 0
+    }
+
+    /// Whether first_block_hit event has been recorded (fires only once ever)
+    static var firstBlockHitRecorded: Bool {
+        get { defaults.bool(forKey: Keys.firstBlockHitRecorded) }
+        set { defaults.set(newValue, forKey: Keys.firstBlockHitRecorded) }
+    }
+
+    /// Shield display count from extension (incremented by ShieldConfigurationExtension)
+    static var shieldDisplayCount: Int {
+        get { defaults.integer(forKey: Keys.shieldDisplayCount) }
+        set { defaults.set(newValue, forKey: Keys.shieldDisplayCount) }
+    }
+
+    /// Last known shield display count (for calculating delta in main app)
+    static var lastKnownShieldDisplayCount: Int {
+        get { defaults.integer(forKey: Keys.lastKnownShieldDisplayCount) }
+        set { defaults.set(newValue, forKey: Keys.lastKnownShieldDisplayCount) }
+    }
+
     // MARK: - Notification Settings
 
     /// Whether to notify at 5 min remaining (default: true)
@@ -449,6 +481,12 @@ enum SharedState {
         // App Store review
         static let workoutCount = "workoutCount"
         static let hasPromptedReview = "hasPromptedReview"
+
+        // Analytics
+        static let installDate = "installDate"
+        static let firstBlockHitRecorded = "firstBlockHitRecorded"
+        static let shieldDisplayCount = "shieldDisplayCount"
+        static let lastKnownShieldDisplayCount = "lastKnownShieldDisplayCount"
     }
 
     // MARK: - Sync

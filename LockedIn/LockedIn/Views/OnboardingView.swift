@@ -75,6 +75,11 @@ struct OnboardingView: View {
         } message: {
             Text("LockedIn needs Screen Time access to block apps. Please enable it in Settings.")
         }
+        .onAppear {
+            // Sync authorization state in case it was granted in a previous session
+            familyControlsManager.refreshStatus()
+            hasGrantedScreenTime = familyControlsManager.isAuthorized
+        }
     }
 
     // MARK: - Screen Views
@@ -84,7 +89,10 @@ struct OnboardingView: View {
             AppColor.background
                 .ignoresSafeArea()
 
-            WelcomeScreen(onContinue: { navigationPath.append(.appSelection) })
+            WelcomeScreen(onContinue: {
+                AnalyticsManager.track(.onboardingStarted)
+                navigationPath.append(.appSelection)
+            })
         }
         .navigationBarHidden(true)
     }
@@ -148,16 +156,26 @@ struct OnboardingView: View {
     private func screenContent(for step: OnboardingStep) -> some View {
         switch step {
         case .welcome:
-            WelcomeScreen(onContinue: { navigationPath.append(.appSelection) })
+            WelcomeScreen(onContinue: {
+                AnalyticsManager.track(.onboardingStarted)
+                navigationPath.append(.appSelection)
+            })
         case .appSelection:
             AppSelectionScreen(
                 manager: familyControlsManager,
-                onContinue: { navigationPath.append(.difficulty) }
+                onContinue: {
+                    AnalyticsManager.track(.onboardingAppsSelected(count: familyControlsManager.blockedAppCount))
+                    navigationPath.append(.difficulty)
+                },
+                onAuthorizationChanged: { authorized in
+                    hasGrantedScreenTime = authorized
+                }
             )
         case .difficulty:
             DifficultyScreen(
                 selectedDifficulty: $selectedDifficulty,
                 onContinue: {
+                    AnalyticsManager.track(.onboardingDifficultySelected(difficulty: selectedDifficulty.rawValue))
                     // Update app icon when leaving difficulty selection
                     AppIconManager.updateIcon(for: selectedDifficulty)
                     navigationPath.append(.permissions)
@@ -177,7 +195,14 @@ struct OnboardingView: View {
                 onRequestNotifications: {
                     Task { await requestNotificationAccess() }
                 },
-                onContinue: { navigationPath.append(.activation) }
+                onContinue: {
+                    AnalyticsManager.track(.onboardingPermissionsGranted(
+                        screenTime: hasGrantedScreenTime,
+                        health: hasRequestedHealth,
+                        notifications: hasGrantedNotifications
+                    ))
+                    navigationPath.append(.activation)
+                }
             )
         case .activation:
             ActivationScreen(
@@ -279,8 +304,10 @@ private struct WelcomeScreen: View {
 private struct AppSelectionScreen: View {
     @Bindable var manager: FamilyControlsManager
     let onContinue: () -> Void
+    let onAuthorizationChanged: (Bool) -> Void
 
     @State private var showPicker = false
+    @State private var showDeniedAlert = false
 
     var body: some View {
         VStack(spacing: 0) {
@@ -297,7 +324,7 @@ private struct AppSelectionScreen: View {
                 .frame(height: AppSpacing.md)
 
             // Subtext
-            Text("These apps get blocked when your bank hits zero.")
+            Text("Using these apps costs screen time. When your bank hits zero, they're blocked.")
                 .font(AppFont.body)
                 .multilineTextAlignment(.center)
                 .foregroundStyle(AppColor.textSecondary)
@@ -308,7 +335,9 @@ private struct AppSelectionScreen: View {
             // Choose apps button
             Button {
                 HapticManager.impact()
-                showPicker = true
+                Task {
+                    await requestAuthorizationAndShowPicker()
+                }
             } label: {
                 HStack(spacing: AppSpacing.sm) {
                     Image(systemName: "apps.iphone")
@@ -356,6 +385,43 @@ private struct AppSelectionScreen: View {
             isPresented: $showPicker,
             selection: $manager.selection
         )
+        .alert("Screen Time Required", isPresented: $showDeniedAlert) {
+            Button("Open Settings") {
+                openSettings()
+            }
+            Button("Try Again") {
+                Task {
+                    await requestAuthorizationAndShowPicker()
+                }
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("LockedIn needs Screen Time access to block apps. Please enable it in Settings.")
+        }
+    }
+
+    @MainActor
+    private func requestAuthorizationAndShowPicker() async {
+        // Already authorized - show picker directly
+        if manager.isAuthorized {
+            showPicker = true
+            return
+        }
+
+        // Request authorization
+        let authorized = await manager.requestAuthorizationIfNeeded()
+        onAuthorizationChanged(authorized)
+
+        if authorized {
+            showPicker = true
+        } else if manager.wasDenied {
+            showDeniedAlert = true
+        }
+    }
+
+    private func openSettings() {
+        guard let url = URL(string: UIApplication.openSettingsURLString) else { return }
+        UIApplication.shared.open(url)
     }
 
     private var selectedAppsView: some View {
@@ -410,7 +476,17 @@ private struct DifficultyScreen: View {
                 .foregroundStyle(AppColor.textPrimary)
 
             Spacer()
-                .frame(height: AppSpacing.xl)
+                .frame(height: AppSpacing.md)
+
+            // Explanation
+            Text("Earn screen time by logging workouts in Apple Health (Apple Watch, Oura Ring, ...etc, or manually). Higher difficulty means more exercise per minute unlocked.")
+                .font(AppFont.body)
+                .multilineTextAlignment(.center)
+                .foregroundStyle(AppColor.textSecondary)
+                .padding(.horizontal, AppSpacing.xl)
+
+            Spacer()
+                .frame(height: AppSpacing.lg)
 
             // Difficulty cards
             VStack(spacing: AppSpacing.sm) {

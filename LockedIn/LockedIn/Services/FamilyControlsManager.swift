@@ -21,8 +21,20 @@ final class FamilyControlsManager {
 
     // MARK: - App Selection
 
+    private var hasLoadedInitialSelection = false
+
     var selection = FamilyActivitySelection() {
-        didSet { saveSelection() }
+        didSet {
+            // Only track user-initiated changes, not initial load from persistence
+            if hasLoadedInitialSelection {
+                AnalyticsManager.track(.blockedAppsModified(
+                    appCount: selection.applicationTokens.count,
+                    categoryCount: selection.categoryTokens.count
+                ))
+                AnalyticsManager.setBlockedAppCount(blockedAppCount)
+            }
+            saveSelection()
+        }
     }
 
     var blockedAppCount: Int {
@@ -84,6 +96,7 @@ final class FamilyControlsManager {
     }
 
     private func loadSelection() {
+        defer { hasLoadedInitialSelection = true }
         guard let data = SharedState.selectionData else { return }
         do {
             selection = try PropertyListDecoder().decode(FamilyActivitySelection.self, from: data)

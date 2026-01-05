@@ -16,6 +16,24 @@ final class BankState {
             if balance != clamped {
                 balance = clamped
             } else {
+                // Analytics: track balance state changes
+                if oldValue > 0 && balance == 0 {
+                    // Balance depleted
+                    AnalyticsManager.track(.balanceDepleted(
+                        difficulty: difficulty.rawValue,
+                        daysSinceInstall: SharedState.daysSinceInstall
+                    ))
+
+                    // First block hit (fires only once ever)
+                    if !SharedState.firstBlockHitRecorded {
+                        AnalyticsManager.track(.firstBlockHit(daysSinceInstall: SharedState.daysSinceInstall))
+                        SharedState.firstBlockHitRecorded = true
+                    }
+                } else if oldValue == 0 && balance > 0 {
+                    // Balance recovered
+                    AnalyticsManager.track(.balanceRecovered(minutesToRecover: balance))
+                }
+
                 // Persist to SharedState for extension access
                 SharedState.balance = balance
                 SharedState.synchronize()
