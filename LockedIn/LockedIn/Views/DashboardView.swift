@@ -60,7 +60,10 @@ struct DashboardView: View {
                             transactions: bankState.recentTransactions,
                             accentColor: bankState.difficulty.color,
                             currentBalance: bankState.balance,
-                            onSeeAll: { showActivityHistory = true }
+                            onSeeAll: {
+                                AnalyticsManager.track(.activityHistoryViewed)
+                                showActivityHistory = true
+                            }
                         )
                         .padding(.horizontal, AppSpacing.lg)
                         .padding(.vertical, AppSpacing.md)
@@ -117,6 +120,7 @@ struct DashboardView: View {
             Spacer()
 
             Button {
+                AnalyticsManager.track(.settingsOpened)
                 showSettings = true
             } label: {
                 Image(systemName: "gearshape")

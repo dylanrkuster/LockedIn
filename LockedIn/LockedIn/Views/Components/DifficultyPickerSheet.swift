@@ -59,6 +59,12 @@ struct DifficultyPickerSheet: View {
             }
             Button("Change", role: .destructive) {
                 HapticManager.notification(.warning)
+                AnalyticsManager.track(.difficultyChanged(
+                    from: currentDifficulty.rawValue,
+                    to: difficulty.rawValue,
+                    balanceLost: minutesLost(for: difficulty)
+                ))
+                AnalyticsManager.setDifficulty(difficulty.rawValue)
                 onSelect(difficulty)
                 dismiss()
             }
@@ -101,6 +107,12 @@ struct DifficultyPickerSheet: View {
         if lost > 0 {
             pendingDifficulty = difficulty
         } else {
+            AnalyticsManager.track(.difficultyChanged(
+                from: currentDifficulty.rawValue,
+                to: difficulty.rawValue,
+                balanceLost: 0
+            ))
+            AnalyticsManager.setDifficulty(difficulty.rawValue)
             onSelect(difficulty)
             dismiss()
         }

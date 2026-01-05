@@ -48,6 +48,9 @@ class ShieldConfigurationExtension: ShieldConfigurationDataSource {
     // MARK: - Configuration Builder
 
     private func makeConfiguration() -> ShieldConfiguration {
+        // Track shield display for analytics (main app will log the event on foreground)
+        SharedState.shieldDisplayCount += 1
+
         // Get difficulty for color and caching
         let difficulty = SharedState.difficultyRaw
         let difficultyColor = getDifficultyColor(difficulty)

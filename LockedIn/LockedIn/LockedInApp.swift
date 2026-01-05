@@ -3,6 +3,7 @@
 //  LockedIn
 //
 
+import FirebaseCore
 import HealthKit
 import StoreKit
 import SwiftUI
@@ -14,6 +15,16 @@ struct LockedInApp: App {
     @State private var blockingManager = BlockingManager()
     @State private var healthKitManager = HealthKitManager()
     @State private var showOnboarding = !SharedState.hasCompletedOnboarding
+
+    init() {
+        FirebaseApp.configure()
+
+        // Set install date on first launch (for analytics)
+        if SharedState.installDate == nil {
+            SharedState.installDate = Date()
+            SharedState.synchronize()
+        }
+    }
 
     var body: some Scene {
         WindowGroup {
@@ -30,6 +41,14 @@ struct LockedInApp: App {
                             // (ensures consistent state if app killed mid-completion)
                             SharedState.hasCompletedOnboarding = true
                             SharedState.synchronize()
+
+                            // Analytics: onboarding completed
+                            AnalyticsManager.track(.onboardingCompleted(
+                                difficulty: difficulty.rawValue,
+                                appCount: familyControlsManager.blockedAppCount
+                            ))
+                            AnalyticsManager.setDifficulty(difficulty.rawValue)
+                            AnalyticsManager.setBlockedAppCount(familyControlsManager.blockedAppCount)
                             // Transition to dashboard
                             withAnimation {
                                 showOnboarding = false
@@ -170,15 +189,43 @@ struct LockedInApp: App {
             // Reset notification flags if balance now above thresholds
             SharedState.resetNotificationFlags(for: bankState.balance)
 
+            // Track first workout milestone
+            let isFirstWorkout = SharedState.workoutCount == 0
+
             // Mark as processed and increment workout count
             SharedState.markWorkoutProcessed(workoutID)
             SharedState.workoutCount += 1
+
+            // Analytics: workout synced
+            AnalyticsManager.track(.workoutSynced(
+                minutesEarned: actualEarned,
+                workoutType: source,
+                balanceAfter: bankState.balance
+            ))
+
+            if isFirstWorkout {
+                AnalyticsManager.track(.firstWorkoutSynced(minutesEarned: actualEarned))
+            }
         }
     }
 
     // MARK: - State Reload
 
     private func reloadStateFromShared() {
+        // Analytics: app foregrounded
+        AnalyticsManager.track(.appForegrounded(
+            balance: SharedState.balance,
+            difficulty: SharedState.difficultyRaw
+        ))
+
+        // Check if shield was displayed while app was in background
+        let currentShieldCount = SharedState.shieldDisplayCount
+        let lastKnownCount = SharedState.lastKnownShieldDisplayCount
+        if currentShieldCount > lastKnownCount {
+            AnalyticsManager.track(.shieldDisplayed(count: currentShieldCount - lastKnownCount))
+            SharedState.lastKnownShieldDisplayCount = currentShieldCount
+        }
+
         // Merge any pending transactions from extensions before reading state
         SharedState.mergePendingTransactions()
 
@@ -223,6 +270,10 @@ struct LockedInApp: App {
         else { return }
 
         SKStoreReviewController.requestReview(in: scene)
+
+        // Analytics: review prompt shown
+        AnalyticsManager.track(.reviewPromptShown(workoutCount: SharedState.workoutCount))
+
         SharedState.hasPromptedReview = true
         SharedState.synchronize()
     }
