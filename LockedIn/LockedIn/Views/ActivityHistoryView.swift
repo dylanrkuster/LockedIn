@@ -144,10 +144,41 @@ struct ActivityHistoryView: View {
 
                 Spacer()
 
-                // Daily net
-                Text(formatNet(group.net))
-                    .font(AppFont.mono(12))
-                    .foregroundStyle(group.net >= 0 ? accentColor : AppColor.textTertiary)
+                // Daily summary: EARNED / SPENT / NET
+                HStack(spacing: AppSpacing.md) {
+                    // Earned
+                    HStack(spacing: 4) {
+                        Text("EARNED")
+                            .font(AppFont.label(9))
+                            .tracking(1)
+                            .foregroundStyle(AppColor.textTertiary)
+                        Text("+\(group.earned)")
+                            .font(AppFont.mono(12))
+                            .foregroundStyle(accentColor)
+                    }
+
+                    // Spent
+                    HStack(spacing: 4) {
+                        Text("SPENT")
+                            .font(AppFont.label(9))
+                            .tracking(1)
+                            .foregroundStyle(AppColor.textTertiary)
+                        Text("\(group.spent)")
+                            .font(AppFont.mono(12))
+                            .foregroundStyle(AppColor.textSecondary)
+                    }
+
+                    // Net
+                    HStack(spacing: 4) {
+                        Text("NET")
+                            .font(AppFont.label(9))
+                            .tracking(1)
+                            .foregroundStyle(AppColor.textTertiary)
+                        Text(formatNet(group.net))
+                            .font(AppFont.mono(12))
+                            .foregroundStyle(group.net > 0 ? accentColor : AppColor.textSecondary)
+                    }
+                }
             }
             .padding(.horizontal, AppSpacing.lg)
             .padding(.top, isFirst ? AppSpacing.sm : 0)
@@ -180,8 +211,9 @@ struct ActivityHistoryView: View {
 
         return order.map { key in
             let items = groups[key] ?? []
-            let net = items.reduce(0) { $0 + $1.amount }
-            return DayLedgerGroup(header: key, items: items, net: net)
+            let earned = items.filter { $0.amount > 0 }.reduce(0) { $0 + $1.amount }
+            let spent = items.filter { $0.amount < 0 }.reduce(0) { $0 + abs($1.amount) }
+            return DayLedgerGroup(header: key, items: items, earned: earned, spent: spent)
         }
     }
 
@@ -204,7 +236,10 @@ private struct DayLedgerGroup: Identifiable {
     let id = UUID()
     let header: String
     let items: [LedgerItem]
-    let net: Int
+    let earned: Int
+    let spent: Int
+
+    var net: Int { earned - spent }
 }
 
 // MARK: - Swipe Back Gesture Enabler

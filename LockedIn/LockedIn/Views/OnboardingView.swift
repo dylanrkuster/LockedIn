@@ -17,6 +17,7 @@ enum OnboardingStep: Int, CaseIterable, Hashable {
     case appSelection
     case difficulty
     case permissions
+    case widgets
     case activation
 }
 
@@ -46,12 +47,12 @@ struct OnboardingView: View {
         self._hasGrantedScreenTime = State(initialValue: familyControlsManager.isAuthorized)
     }
 
-    // Step number for display (excludes welcome screen, so 1-4)
+    // Step number for display (excludes welcome screen, so 1-5)
     private func stepNumber(for step: OnboardingStep) -> Int {
-        step.rawValue  // welcome=0, appSelection=1, difficulty=2, permissions=3, activation=4
+        step.rawValue  // welcome=0, appSelection=1, difficulty=2, permissions=3, widgets=4, activation=5
     }
 
-    private let totalSteps = 4
+    private let totalSteps = 5
 
     var body: some View {
         NavigationStack(path: $navigationPath) {
@@ -195,6 +196,13 @@ struct OnboardingView: View {
                         health: hasRequestedHealth,
                         notifications: hasGrantedNotifications
                     ))
+                    navigationPath.append(.widgets)
+                }
+            )
+        case .widgets:
+            WidgetsScreen(
+                difficulty: selectedDifficulty,
+                onContinue: {
                     navigationPath.append(.activation)
                 }
             )
@@ -674,7 +682,7 @@ private struct PermissionsScreen: View {
                 title: "APPLE HEALTH ACCESS",
                 subtitle: "Required to track workouts. If workouts don't sync, verify in Settings > Privacy > Health.",
                 isGranted: hasRequestedHealth,
-                grantedLabel: "REQUESTED",  // Can't verify actual grant due to HealthKit privacy
+                grantedLabel: "GRANTED",  // Optimistic - can't actually verify due to HealthKit privacy
                 isRequired: true,
                 isLoading: isLoadingHealth,
                 onRequest: {
@@ -808,7 +816,254 @@ private struct PermissionBlock: View {
     }
 }
 
-// MARK: - Screen 5: Activation
+// MARK: - Screen 5: Widgets
+
+private struct WidgetsScreen: View {
+    let difficulty: Difficulty
+    let onContinue: () -> Void
+
+    var body: some View {
+        VStack(spacing: 0) {
+            Spacer()
+                .frame(height: AppSpacing.lg)
+
+            // Header
+            Text("ADD A WIDGET")
+                .font(.system(size: 24, weight: .bold, design: .default))
+                .tracking(4)
+                .foregroundStyle(AppColor.textPrimary)
+
+            Spacer()
+                .frame(height: AppSpacing.sm)
+
+            // Subtext - punchy
+            Text("Never miss your balance.")
+                .font(AppFont.body)
+                .foregroundStyle(AppColor.textSecondary)
+
+            Spacer()
+                .frame(height: AppSpacing.xl)
+
+            // Widget showcase - vertical stack
+            VStack(spacing: AppSpacing.lg) {
+                // Lock screen widget
+                WidgetShowcase(
+                    title: "LOCK SCREEN",
+                    subtitle: "Glanceable circular gauge"
+                ) {
+                    LockScreenWidgetPreview(
+                        balance: difficulty.startingBalance,
+                        maxBalance: difficulty.maxBalance,
+                        difficulty: difficulty
+                    )
+                }
+
+                // Home screen widget
+                WidgetShowcase(
+                    title: "HOME SCREEN",
+                    subtitle: "Full balance with progress"
+                ) {
+                    HomeScreenWidgetPreview(
+                        balance: difficulty.startingBalance,
+                        maxBalance: difficulty.maxBalance,
+                        difficulty: difficulty
+                    )
+                }
+            }
+            .padding(.horizontal, AppSpacing.lg)
+
+            Spacer()
+                .frame(height: AppSpacing.xl)
+
+            // Instructions - compact, integrated
+            VStack(spacing: AppSpacing.md) {
+                // Divider
+                Rectangle()
+                    .fill(AppColor.border)
+                    .frame(height: 1)
+                    .padding(.horizontal, AppSpacing.lg)
+
+                HStack(spacing: AppSpacing.xl) {
+                    InstructionStep(number: "1", text: "Long press\nyour screen")
+                    InstructionStep(number: "2", text: "Tap the\n+ button")
+                    InstructionStep(number: "3", text: "Search\n\"LOCKEDIN\"")
+                }
+                .padding(.horizontal, AppSpacing.lg)
+                .padding(.vertical, AppSpacing.sm)
+
+                // Divider
+                Rectangle()
+                    .fill(AppColor.border)
+                    .frame(height: 1)
+                    .padding(.horizontal, AppSpacing.lg)
+            }
+
+            Spacer()
+
+            // Continue button
+            OnboardingButton(title: "CONTINUE", action: onContinue)
+                .padding(.horizontal, AppSpacing.lg)
+                .padding(.bottom, AppSpacing.xxl)
+        }
+    }
+}
+
+// MARK: - Widget Showcase
+
+private struct WidgetShowcase<Content: View>: View {
+    let title: String
+    let subtitle: String
+    @ViewBuilder let content: Content
+
+    var body: some View {
+        HStack(spacing: AppSpacing.lg) {
+            // Widget preview
+            content
+
+            // Description
+            VStack(alignment: .leading, spacing: AppSpacing.xs) {
+                Text(title)
+                    .font(AppFont.label(12))
+                    .tracking(2)
+                    .foregroundStyle(AppColor.textPrimary)
+
+                Text(subtitle)
+                    .font(AppFont.body)
+                    .foregroundStyle(AppColor.textTertiary)
+            }
+
+            Spacer()
+        }
+        .padding(AppSpacing.md)
+        .overlay(
+            Rectangle()
+                .stroke(AppColor.border, lineWidth: 1)
+        )
+    }
+}
+
+// MARK: - Lock Screen Widget Preview (Circular Gauge)
+
+private struct LockScreenWidgetPreview: View {
+    let balance: Int
+    let maxBalance: Int
+    let difficulty: Difficulty
+
+    private var progress: Double {
+        guard maxBalance > 0 else { return 0 }
+        return Double(balance) / Double(maxBalance)
+    }
+
+    var body: some View {
+        ZStack {
+            // Background circle (track)
+            Circle()
+                .stroke(AppColor.border, lineWidth: 5)
+
+            // Progress arc
+            Circle()
+                .trim(from: 0, to: progress)
+                .stroke(difficulty.color, style: StrokeStyle(lineWidth: 5, lineCap: .round))
+                .rotationEffect(.degrees(-90))
+
+            // Balance number
+            Text("\(balance)")
+                .font(.system(size: 24, weight: .bold, design: .monospaced))
+                .foregroundStyle(AppColor.textPrimary)
+        }
+        .frame(width: 70, height: 70)
+    }
+}
+
+// MARK: - Home Screen Widget Preview (Small)
+
+private struct HomeScreenWidgetPreview: View {
+    let balance: Int
+    let maxBalance: Int
+    let difficulty: Difficulty
+
+    private var progress: Double {
+        guard maxBalance > 0 else { return 0 }
+        return Double(balance) / Double(maxBalance)
+    }
+
+    var body: some View {
+        VStack(spacing: 0) {
+            // Balance number
+            Text("\(balance)")
+                .font(.system(size: 22, weight: .bold, design: .monospaced))
+                .foregroundStyle(AppColor.textPrimary)
+                .padding(.top, 8)
+
+            Text("MIN")
+                .font(.system(size: 7, weight: .semibold))
+                .tracking(1)
+                .foregroundStyle(AppColor.textSecondary)
+                .padding(.top, 1)
+
+            Spacer(minLength: 0)
+
+            // Progress bar
+            ZStack(alignment: .leading) {
+                Rectangle()
+                    .fill(AppColor.border)
+                    .frame(height: 2)
+                Rectangle()
+                    .fill(difficulty.color)
+                    .frame(width: 58 * progress, height: 2)
+            }
+            .frame(width: 58)
+            .padding(.bottom, 4)
+
+            // Difficulty bars
+            HStack(spacing: 1) {
+                ForEach(0..<4, id: \.self) { index in
+                    Rectangle()
+                        .fill(index < difficulty.barCount ? difficulty.color : AppColor.border)
+                        .frame(width: 2, height: 6)
+                }
+            }
+            .padding(.bottom, 6)
+        }
+        .frame(width: 70, height: 70)
+        .background(AppColor.surface)
+        .overlay(
+            Rectangle()
+                .stroke(AppColor.border, lineWidth: 1)
+        )
+    }
+}
+
+// MARK: - Instruction Step
+
+private struct InstructionStep: View {
+    let number: String
+    let text: String
+
+    var body: some View {
+        VStack(spacing: AppSpacing.xs) {
+            // Number in circle
+            Text(number)
+                .font(AppFont.mono(14))
+                .foregroundStyle(AppColor.textPrimary)
+                .frame(width: 28, height: 28)
+                .overlay(
+                    Circle()
+                        .stroke(AppColor.border, lineWidth: 1)
+                )
+
+            // Text
+            Text(text)
+                .font(AppFont.mono(11))
+                .multilineTextAlignment(.center)
+                .foregroundStyle(AppColor.textTertiary)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .frame(maxWidth: .infinity)
+    }
+}
+
+// MARK: - Screen 6: Activation
 
 private struct ActivationScreen: View {
     let difficulty: Difficulty

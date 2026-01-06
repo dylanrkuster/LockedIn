@@ -14,6 +14,7 @@ import DeviceActivity
 import FamilyControls
 import Foundation
 import ManagedSettings
+import WidgetKit
 
 /// DeviceActivity monitor that tracks blocked app usage minute-by-minute.
 /// Receives callbacks when each usage threshold is reached.
@@ -121,6 +122,9 @@ class DeviceActivityMonitorExtension: DeviceActivityMonitor {
 
         // Apply balance change with inter-process lock to prevent races with main app
         SharedState.atomicBalanceSet(result.newBalance)
+
+        // Refresh widget to show updated balance
+        WidgetCenter.shared.reloadTimelines(ofKind: "BalanceWidget")
 
         // Log the spend transaction
         if result.toDeduct > 0 {

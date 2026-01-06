@@ -58,13 +58,13 @@ enum Difficulty: String, CaseIterable, Identifiable {
     }
 
     /// Display string for the conversion ratio (workout:screen)
-    /// e.g., "2:1" means 2 workout minutes = 1 screen minute
+    /// e.g., "2:1" means 2 workout minutes : 1 screen minute
     var ratioDisplay: String {
         switch self {
-        case .easy: "1:2"      // 1 workout = 2 screen
-        case .medium: "1:1"    // 1 workout = 1 screen
-        case .hard: "2:1"      // 2 workout = 1 screen
-        case .extreme: "3:1"   // 3 workout = 1 screen
+        case .easy: "1:2"      // 1 workout : 2 screen
+        case .medium: "1:1"    // 1 workout : 1 screen
+        case .hard: "2:1"      // 2 workout : 1 screen
+        case .extreme: "3:1"   // 3 workout : 1 screen
         }
     }
 }

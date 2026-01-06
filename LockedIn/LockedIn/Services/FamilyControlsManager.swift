@@ -15,9 +15,21 @@ final class FamilyControlsManager {
 
     private(set) var authorizationStatus: AuthorizationStatus = .notDetermined
 
+    /// Runtime check - may be unreliable at app launch
     var isAuthorized: Bool { authorizationStatus == .approved }
     var needsAuthorization: Bool { authorizationStatus == .notDetermined }
     var wasDenied: Bool { authorizationStatus == .denied }
+
+    /// Persisted flag - reliable even at app launch.
+    /// Set to true when authorization is successfully granted.
+    /// This survives app relaunches and doesn't depend on system timing.
+    var hasEverBeenAuthorized: Bool {
+        get { SharedState.hasEverBeenAuthorized }
+        set {
+            SharedState.hasEverBeenAuthorized = newValue
+            SharedState.synchronize()
+        }
+    }
 
     // MARK: - App Selection
 
@@ -63,18 +75,39 @@ final class FamilyControlsManager {
         authorizationStatus = AuthorizationCenter.shared.authorizationStatus
     }
 
+    /// Check for authorization revocation and update persisted state.
+    /// Call this on app foreground to detect if user revoked permission in Settings.
+    /// - Returns: true if authorization was revoked
+    func checkForRevocation() -> Bool {
+        refreshStatus()
+
+        // If we previously had authorization but now don't, user revoked it
+        if hasEverBeenAuthorized && !isAuthorized {
+            // Clear persisted flag since authorization was explicitly revoked
+            hasEverBeenAuthorized = false
+            return true
+        }
+        return false
+    }
+
     /// Request authorization if not already granted or denied.
     /// - Returns: true if authorized (either already or newly granted)
     @MainActor
     func requestAuthorizationIfNeeded() async -> Bool {
         refreshStatus()
 
-        if isAuthorized { return true }
+        if isAuthorized {
+            hasEverBeenAuthorized = true
+            return true
+        }
         if wasDenied { return false }
 
         do {
             try await AuthorizationCenter.shared.requestAuthorization(for: .individual)
             refreshStatus()
+            if isAuthorized {
+                hasEverBeenAuthorized = true
+            }
             return isAuthorized
         } catch {
             refreshStatus()

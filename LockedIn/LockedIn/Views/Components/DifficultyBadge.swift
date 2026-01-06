@@ -13,7 +13,7 @@ struct DifficultyBadge: View {
 
     private let totalBars = 4
     private let barWidth: CGFloat = 3
-    private let barHeight: CGFloat = 14
+    private let barHeight: CGFloat = 16
     private let barSpacing: CGFloat = 3
 
     var body: some View {
@@ -46,16 +46,12 @@ struct DifficultyBadge: View {
                 Text(difficulty.rawValue)
                     .underline()
                     .font(AppFont.label(10))
-                    .tracking(2)
+                    .tracking(1.5)
                     .foregroundStyle(difficulty.color)
 
-                Text("·")
-                    .font(AppFont.label(10))
-                    .foregroundStyle(AppColor.textTertiary)
-
                 Text(difficulty.ratioDisplay)
-                    .font(AppFont.mono(10))
-                    .foregroundStyle(AppColor.textTertiary)
+                    .font(AppFont.mono(9))
+                    .foregroundStyle(AppColor.textSecondary)
             }
         }
     }
