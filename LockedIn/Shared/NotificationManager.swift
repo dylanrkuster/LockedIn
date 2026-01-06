@@ -8,6 +8,25 @@
 
 import UserNotifications
 
+/// Delegate to handle foreground notification display.
+/// Without this, iOS silently suppresses notifications when app is in foreground.
+final class NotificationDelegate: NSObject, UNUserNotificationCenterDelegate {
+    static let shared = NotificationDelegate()
+
+    private override init() {
+        super.init()
+    }
+
+    /// Show notification banners even when app is in foreground
+    func userNotificationCenter(
+        _ center: UNUserNotificationCenter,
+        willPresent notification: UNNotification,
+        withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void
+    ) {
+        completionHandler([.banner, .sound])
+    }
+}
+
 /// Handles posting local notifications for LockedIn events.
 /// Caller is responsible for checking settings and spam prevention.
 enum NotificationManager {
@@ -48,28 +67,23 @@ enum NotificationManager {
 
     // MARK: - Workout Notifications
 
-    /// Post workout synced notification with balance info.
-    /// - Parameters:
-    ///   - earnedMinutes: Minutes earned from the workout
-    ///   - newBalance: Current balance after earning
-    ///   - maxBalance: Maximum balance for current difficulty
-    static func postWorkoutSynced(earnedMinutes: Int, newBalance: Int, maxBalance: Int) {
+    /// Post workout synced notification.
+    /// - Parameter earnedMinutes: Minutes earned from the workout
+    static func postWorkoutSynced(earnedMinutes: Int) {
         post(
             identifier: Identifier.workoutSynced,
             title: appTitle,
-            body: "Workout complete. +\(earnedMinutes) min of screen time. Bank: \(newBalance)/\(maxBalance)."
+            body: "Nice. +\(earnedMinutes) min added to your bank."
         )
     }
 
     /// Post workout synced notification when earnings were capped.
-    /// - Parameters:
-    ///   - earnedMinutes: Minutes actually earned (after cap)
-    ///   - workoutMinutes: Minutes that would have been earned without cap
-    static func postWorkoutSyncedCapped(earnedMinutes: Int, workoutMinutes: Int) {
+    /// - Parameter earnedMinutes: Minutes actually earned (after cap)
+    static func postWorkoutSyncedCapped(earnedMinutes: Int) {
         post(
             identifier: Identifier.workoutSynced,
             title: appTitle,
-            body: "Workout complete. +\(earnedMinutes) min of screen time. Bank full."
+            body: "+\(earnedMinutes) min added. Bank full."
         )
     }
 
