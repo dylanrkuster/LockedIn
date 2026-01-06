@@ -3,7 +3,7 @@ type: improvement
 title: Add Today's summary stats to dashboard
 priority: P2
 complexity: trivial
-status: pending
+status: closed
 
 po_notes: |
   - MVP.md says "Basic 'today' view is enough" - this delivers it
