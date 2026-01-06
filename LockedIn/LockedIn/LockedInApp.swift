@@ -217,6 +217,12 @@ struct LockedInApp: App {
     }
 
     private func processNewWorkouts(_ workouts: [HKWorkout]) {
+        // Sync state from SharedState to ensure accurate cap calculation.
+        // Without this, bankState.balance may be stale when HKObserverQuery
+        // fires in background (extension updates SharedState, but bankState
+        // only syncs on foreground).
+        bankState.syncFromSharedState()
+
         for workout in workouts {
             let workoutID = workout.uuid.uuidString
 

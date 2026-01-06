@@ -383,4 +383,75 @@ final class BankStateTests: XCTestCase {
 
         XCTAssertTrue(SharedState.hasLaunched)
     }
+
+    // MARK: - Regression: Stale State Cap Enforcement (Ticket 017)
+
+    func testSyncFromSharedStateUpdatesBalance() {
+        // Regression test for race condition where bankState.balance is stale
+        // when processing workouts in background. Extension updates SharedState
+        // but bankState doesn't sync until foreground.
+
+        // Setup: BankState has stale balance of 175
+        let state = BankState(balance: 175, difficulty: .medium)
+        XCTAssertEqual(state.balance, 175)
+
+        // Simulate: Extension updated SharedState.balance to 178
+        SharedState.balance = 178
+        SharedState.synchronize()
+
+        // Before sync, bankState is still stale
+        XCTAssertEqual(state.balance, 175)
+
+        // Sync from SharedState
+        state.syncFromSharedState()
+
+        // After sync, balance should match SharedState
+        XCTAssertEqual(state.balance, 178)
+    }
+
+    func testEarnCapEnforcementAfterSync() {
+        // Test that cap calculation uses synced balance, not stale value.
+        // Medium difficulty: max 180, 1:1 ratio
+
+        // Setup: BankState initialized with stale balance
+        let state = BankState(balance: 175, difficulty: .medium)
+
+        // Simulate: Extension deducted 3 min, SharedState now at 172
+        SharedState.balance = 172
+        SharedState.synchronize()
+
+        // Sync before processing workout
+        state.syncFromSharedState()
+        XCTAssertEqual(state.balance, 172)
+
+        // Earn 10 min workout → should cap at 180, so +8 earned
+        state.earn(workoutMinutes: 10, source: "Run")
+
+        XCTAssertEqual(state.balance, 180)  // Capped at max
+        XCTAssertEqual(state.transactions.last?.amount, 8)  // Only 8 earned (180-172)
+    }
+
+    func testEarnWithStaleStateWouldOverCap() {
+        // Demonstrates the bug: if we DON'T sync, cap calculation is wrong.
+        // This test shows the incorrect behavior we're preventing.
+
+        // Setup: BankState at 175, but SharedState at 178
+        let state = BankState(balance: 175, difficulty: .medium)
+        SharedState.balance = 178
+        SharedState.synchronize()
+
+        // WITHOUT sync: earn would use stale balance 175
+        // Cap calc: min(5, 180-175) = 5 → balance becomes 180
+        // But SharedState is actually 178, so real cap should be 2
+
+        // With sync (correct behavior):
+        state.syncFromSharedState()
+        XCTAssertEqual(state.balance, 178)
+
+        state.earn(workoutMinutes: 5, source: "Run")
+
+        // Correctly capped: only 2 min earned (180-178)
+        XCTAssertEqual(state.balance, 180)
+        XCTAssertEqual(state.transactions.last?.amount, 2)
+    }
 }

@@ -3,7 +3,7 @@ type: bug
 title: Bank balance cap not enforced due to stale state in background workout sync
 priority: P0
 complexity: standard
-status: open
+status: closed
 
 po_notes: |
   - P0: Core mechanic broken. "Difficulty as Identity" tenet violated.
