@@ -63,6 +63,30 @@ struct SettingsView: View {
                 }
                 .padding(.horizontal, AppSpacing.lg)
 
+                // About section
+                VStack(spacing: 0) {
+                    sectionHeader("ABOUT")
+
+                    aboutRow(appVersion)
+
+                    Button {
+                        HapticManager.impact()
+                        openFeedbackEmail()
+                    } label: {
+                        HStack {
+                            Text("Send Feedback")
+                                .font(AppFont.body)
+                                .foregroundStyle(accentColor)
+                                .underline()
+                            Spacer()
+                        }
+                    }
+                    .buttonStyle(.plain)
+                    .padding(.vertical, AppSpacing.sm)
+                }
+                .padding(.horizontal, AppSpacing.lg)
+                .padding(.top, AppSpacing.xl)
+
                 Spacer()
             }
         }
@@ -112,6 +136,29 @@ struct SettingsView: View {
 
     private func openNotificationSettings() {
         guard let url = URL(string: UIApplication.openNotificationSettingsURLString) else { return }
+        UIApplication.shared.open(url)
+    }
+
+    // MARK: - About Section
+
+    private var appVersion: String {
+        let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0"
+        let build = Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "1"
+        return "Version \(version) (\(build))"
+    }
+
+    private func aboutRow(_ text: String) -> some View {
+        HStack {
+            Text(text)
+                .font(AppFont.body)
+                .foregroundStyle(AppColor.textSecondary)
+            Spacer()
+        }
+        .padding(.vertical, AppSpacing.sm)
+    }
+
+    private func openFeedbackEmail() {
+        guard let url = URL(string: "mailto:feedback@lockedin.app?subject=LockedIn%20Feedback") else { return }
         UIApplication.shared.open(url)
     }
 
