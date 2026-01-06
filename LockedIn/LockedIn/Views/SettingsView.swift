@@ -143,8 +143,7 @@ struct SettingsView: View {
 
     private var appVersion: String {
         let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0"
-        let build = Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "1"
-        return "Version \(version) (\(build))"
+        return "Version \(version)"
     }
 
     private func aboutRow(_ text: String) -> some View {

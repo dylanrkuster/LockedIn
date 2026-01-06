@@ -51,7 +51,7 @@ enum NotificationManager {
         post(
             identifier: Identifier.lowBalance5Min,
             title: appTitle,
-            body: "5 min remaining."
+            body: "5 min of screen time remaining."
         )
     }
 
@@ -61,7 +61,7 @@ enum NotificationManager {
         post(
             identifier: Identifier.lowBalance15Min,
             title: appTitle,
-            body: "15 min remaining."
+            body: "15 min of screen time remaining."
         )
     }
 

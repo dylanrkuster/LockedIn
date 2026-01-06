@@ -9,11 +9,9 @@ import SwiftUI
 
 struct BalanceDisplay: View {
     let balance: Int
+    let maxBalance: Int
     let difficulty: Difficulty
     var onDifficultyTap: (() -> Void)?
-
-    /// Low balance threshold for warning state (matches 5-min notification)
-    private static let lowBalanceThreshold = 5
 
     /// Animation state for low balance pulse
     @State private var isPulsing = false
@@ -22,8 +20,13 @@ struct BalanceDisplay: View {
         max(0, balance)
     }
 
+    /// Dynamic threshold: 20% of max balance
+    private var lowBalanceThreshold: Int {
+        Int(Double(maxBalance) * 0.2)
+    }
+
     private var isLowBalance: Bool {
-        displayBalance <= Self.lowBalanceThreshold
+        displayBalance <= lowBalanceThreshold
     }
 
     private var accessibilityText: String {
@@ -86,31 +89,40 @@ struct BalanceDisplay: View {
 }
 
 #Preview {
-    BalanceDisplay(balance: 47, difficulty: .hard)
+    BalanceDisplay(balance: 47, maxBalance: 120, difficulty: .hard)
         .padding()
         .background(Color.black)
 }
 
 #Preview("Zero") {
-    BalanceDisplay(balance: 0, difficulty: .extreme)
+    BalanceDisplay(balance: 0, maxBalance: 60, difficulty: .extreme)
         .padding()
         .background(Color.black)
 }
 
-#Preview("Low Balance (5 min)") {
-    BalanceDisplay(balance: 5, difficulty: .hard)
+#Preview("Low Balance - 20% of Hard (24 min threshold)") {
+    // Hard: max 120, 20% = 24 min threshold
+    BalanceDisplay(balance: 24, maxBalance: 120, difficulty: .hard)
         .padding()
         .background(Color.black)
 }
 
-#Preview("Just Above Threshold (6 min)") {
-    BalanceDisplay(balance: 6, difficulty: .hard)
+#Preview("Just Above Threshold - Hard") {
+    // Hard: max 120, 20% = 24 min threshold, so 25 is just above
+    BalanceDisplay(balance: 25, maxBalance: 120, difficulty: .hard)
+        .padding()
+        .background(Color.black)
+}
+
+#Preview("Low Balance - 20% of Easy (48 min threshold)") {
+    // Easy: max 240, 20% = 48 min threshold
+    BalanceDisplay(balance: 48, maxBalance: 240, difficulty: .easy)
         .padding()
         .background(Color.black)
 }
 
 #Preview("High Balance") {
-    BalanceDisplay(balance: 187, difficulty: .easy)
+    BalanceDisplay(balance: 187, maxBalance: 240, difficulty: .easy)
         .padding()
         .background(Color.black)
 }

@@ -39,31 +39,49 @@ struct TodaySummary: View {
 
             Spacer()
 
-            HStack(spacing: AppSpacing.md) {
-                // Earned (accent color)
-                Text("+\(todayStats.earned)")
-                    .font(AppFont.mono(12))
-                    .foregroundStyle(accentColor)
+            HStack(spacing: AppSpacing.lg) {
+                // Earned (label + value)
+                HStack(spacing: 4) {
+                    Text("EARNED")
+                        .font(AppFont.label(9))
+                        .tracking(1)
+                        .foregroundStyle(AppColor.textTertiary)
+                    Text("+\(todayStats.earned)")
+                        .font(AppFont.mono(12))
+                        .foregroundStyle(accentColor)
+                }
 
-                // Spent (neutral)
-                Text("-\(todayStats.spent)")
-                    .font(AppFont.mono(12))
-                    .foregroundStyle(AppColor.textSecondary)
+                // Spent (label + value)
+                HStack(spacing: 4) {
+                    Text("SPENT")
+                        .font(AppFont.label(9))
+                        .tracking(1)
+                        .foregroundStyle(AppColor.textTertiary)
+                    Text("\(todayStats.spent)")
+                        .font(AppFont.mono(12))
+                        .foregroundStyle(AppColor.textSecondary)
+                }
 
-                // Net (accent if positive, neutral otherwise)
-                Text(netText)
-                    .font(AppFont.mono(12))
-                    .foregroundStyle(netColor)
+                // Net (label + value)
+                HStack(spacing: 4) {
+                    Text("NET")
+                        .font(AppFont.label(9))
+                        .tracking(1)
+                        .foregroundStyle(AppColor.textTertiary)
+                    Text(netValueText)
+                        .font(AppFont.mono(12))
+                        .foregroundStyle(netColor)
+                }
             }
         }
         .accessibilityElement(children: .combine)
         .accessibilityLabel(accessibilityLabel)
     }
 
-    private var netText: String {
+    private var netValueText: String {
         let net = todayStats.net
         let prefix = net >= 0 ? "+" : ""
-        return "NET \(prefix)\(net)"
+        return "\(prefix)\(net)"
     }
 
     private var netColor: Color {

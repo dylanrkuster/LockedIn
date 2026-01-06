@@ -53,6 +53,7 @@ struct Screenshot1_Hero: View {
                         // Balance display
                         BalanceDisplay(
                             balance: 87,
+                            maxBalance: 180,
                             difficulty: .medium,
                             onDifficultyTap: nil
                         )

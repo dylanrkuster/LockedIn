@@ -15,6 +15,7 @@ struct DashboardView: View {
     @State private var showDebugLogs = false
     @State private var showDifficultyPicker = false
     @State private var showSettings = false
+    @State private var isRefreshing = false
 
     var body: some View {
         NavigationStack {
@@ -23,76 +24,69 @@ struct DashboardView: View {
                 AppColor.background
                     .ignoresSafeArea()
 
-                GeometryReader { geometry in
-                    ScrollView {
-                        VStack(spacing: 0) {
-                            // Header
-                            header
-                                .padding(.horizontal, AppSpacing.lg)
-                                .padding(.top, AppSpacing.md)
+                VStack(spacing: 0) {
+                    // Header
+                    header
+                        .padding(.horizontal, AppSpacing.lg)
+                        .padding(.top, AppSpacing.md)
 
-                            Spacer(minLength: AppSpacing.xxl)
+                    Spacer()
 
-                            // The Vault - center of attention
-                            BalanceDisplay(
-                                balance: bankState.balance,
-                                difficulty: bankState.difficulty,
-                                onDifficultyTap: { showDifficultyPicker = true }
-                            )
+                    // The Vault - center of attention
+                    BalanceDisplay(
+                        balance: bankState.balance,
+                        maxBalance: bankState.maxBalance,
+                        difficulty: bankState.difficulty,
+                        onDifficultyTap: { showDifficultyPicker = true }
+                    )
 
-                            Spacer(minLength: AppSpacing.xxl)
+                    Spacer()
 
-                            // Progress gauge
-                            ProgressBar(
-                                current: bankState.balance,
-                                max: bankState.maxBalance,
-                                accentColor: bankState.difficulty.color
-                            )
-                            .padding(.horizontal, AppSpacing.xxl)
+                    // Progress gauge
+                    ProgressBar(
+                        current: bankState.balance,
+                        max: bankState.maxBalance,
+                        accentColor: bankState.difficulty.color
+                    )
+                    .padding(.horizontal, AppSpacing.xxl)
 
-                            Spacer(minLength: AppSpacing.xl)
+                    Spacer()
+                        .frame(height: AppSpacing.xl)
 
-                            // Today's summary stats
-                            TodaySummary(
-                                transactions: bankState.recentTransactions,
-                                accentColor: bankState.difficulty.color
-                            )
-                            .padding(.horizontal, AppSpacing.lg)
-                            .padding(.bottom, AppSpacing.md)
+                    // Today's summary stats
+                    TodaySummary(
+                        transactions: bankState.recentTransactions,
+                        accentColor: bankState.difficulty.color
+                    )
+                    .padding(.horizontal, AppSpacing.lg)
+                    .padding(.bottom, AppSpacing.md)
 
-                            // Footer sections
-                            VStack(spacing: 0) {
-                                // Divider
-                                divider
+                    // Footer sections
+                    VStack(spacing: 0) {
+                        // Divider
+                        divider
 
-                                // Activity (transaction history)
-                                ActivitySection(
-                                    transactions: bankState.recentTransactions,
-                                    accentColor: bankState.difficulty.color,
-                                    currentBalance: bankState.balance,
-                                    onSeeAll: {
-                                        AnalyticsManager.track(.activityHistoryViewed)
-                                        showActivityHistory = true
-                                    }
-                                )
-                                .padding(.horizontal, AppSpacing.lg)
-                                .padding(.vertical, AppSpacing.md)
-
-                                // Divider
-                                divider
-
-                                // Blocked apps
-                                BlockedAppsSection(manager: familyControlsManager, accentColor: bankState.difficulty.color)
-                                    .padding(.horizontal, AppSpacing.lg)
-                                    .padding(.vertical, AppSpacing.md)
+                        // Activity (transaction history)
+                        ActivitySection(
+                            transactions: bankState.recentTransactions,
+                            accentColor: bankState.difficulty.color,
+                            currentBalance: bankState.balance,
+                            onSeeAll: {
+                                AnalyticsManager.track(.activityHistoryViewed)
+                                showActivityHistory = true
                             }
-                        }
-                        .frame(minHeight: geometry.size.height)
+                        )
+                        .padding(.horizontal, AppSpacing.lg)
+                        .padding(.vertical, AppSpacing.md)
+
+                        // Divider
+                        divider
+
+                        // Blocked apps
+                        BlockedAppsSection(manager: familyControlsManager, accentColor: bankState.difficulty.color)
+                            .padding(.horizontal, AppSpacing.lg)
+                            .padding(.vertical, AppSpacing.md)
                     }
-                    .refreshable {
-                        await onRefresh?()
-                    }
-                    .tint(bankState.difficulty.color)
                 }
             }
             .navigationBarHidden(true)
@@ -136,6 +130,28 @@ struct DashboardView: View {
 
             Spacer()
 
+            // Sync workouts button
+            Button {
+                guard !isRefreshing else { return }
+                HapticManager.impact()
+                Task {
+                    isRefreshing = true
+                    await onRefresh?()
+                    isRefreshing = false
+                }
+            } label: {
+                Image(systemName: "arrow.clockwise")
+                    .font(.system(size: 16, weight: .medium))
+                    .foregroundStyle(AppColor.textSecondary)
+                    .rotationEffect(.degrees(isRefreshing ? 360 : 0))
+                    .animation(
+                        isRefreshing ? .linear(duration: 1).repeatForever(autoreverses: false) : .default,
+                        value: isRefreshing
+                    )
+            }
+            .disabled(isRefreshing)
+            .padding(.trailing, AppSpacing.md)
+
             Button {
                 AnalyticsManager.track(.settingsOpened)
                 showSettings = true
@@ -159,10 +175,11 @@ struct DashboardView: View {
     DashboardView(bankState: .mock, familyControlsManager: FamilyControlsManager(), onRefresh: nil)
 }
 
-#Preview("Low Balance") {
+#Preview("Low Balance - Extreme (12 min threshold)") {
+    // Extreme: max 60, 20% = 12 min threshold
     DashboardView(
         bankState: BankState(
-            balance: 5,
+            balance: 12,
             difficulty: .extreme,
             transactions: [
                 Transaction(id: UUID(), amount: -15, source: "TikTok", timestamp: Date().addingTimeInterval(-300))

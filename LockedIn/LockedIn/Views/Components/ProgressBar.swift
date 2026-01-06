@@ -12,9 +12,6 @@ struct ProgressBar: View {
     let max: Int
     let accentColor: Color
 
-    /// Low balance threshold for warning state (matches 5-min notification)
-    private static let lowBalanceThreshold = 5
-
     private var clampedCurrent: Int {
         Swift.max(0, current)
     }
@@ -24,9 +21,14 @@ struct ProgressBar: View {
         return min(1, Double(clampedCurrent) / Double(max))
     }
 
+    /// Dynamic threshold: 20% of max balance
+    private var lowBalanceThreshold: Int {
+        Int(Double(max) * 0.2)
+    }
+
     /// Effective fill color - red when low balance, accent color otherwise
     private var effectiveColor: Color {
-        clampedCurrent <= Self.lowBalanceThreshold ? AppColor.extreme : accentColor
+        clampedCurrent <= lowBalanceThreshold ? AppColor.extreme : accentColor
     }
 
     private var percentageText: String {
@@ -90,15 +92,25 @@ struct ProgressBar: View {
         .background(Color.black)
 }
 
-#Preview("Low Balance (5 min) - Easy Difficulty") {
-    ProgressBar(current: 5, max: 240, accentColor: AppColor.easy)
+#Preview("Low Balance - 20% of Easy (48 min)") {
+    // Easy: max 240, 20% = 48 min threshold
+    ProgressBar(current: 48, max: 240, accentColor: AppColor.easy)
         .padding(.horizontal, 48)
         .padding(.vertical, 24)
         .background(Color.black)
 }
 
-#Preview("Just Above Threshold (6 min)") {
-    ProgressBar(current: 6, max: 120, accentColor: AppColor.hard)
+#Preview("Just Above Threshold - Easy (49 min)") {
+    // Easy: max 240, 20% = 48 min threshold, so 49 is just above
+    ProgressBar(current: 49, max: 240, accentColor: AppColor.easy)
+        .padding(.horizontal, 48)
+        .padding(.vertical, 24)
+        .background(Color.black)
+}
+
+#Preview("Low Balance - 20% of Hard (24 min)") {
+    // Hard: max 120, 20% = 24 min threshold
+    ProgressBar(current: 24, max: 120, accentColor: AppColor.hard)
         .padding(.horizontal, 48)
         .padding(.vertical, 24)
         .background(Color.black)
