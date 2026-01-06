@@ -3,7 +3,7 @@ type: improvement
 title: Visual warning state for low balance
 priority: P2
 complexity: trivial
-status: pending
+status: closed
 
 po_notes: |
   - Creates urgency without words - psychological pressure

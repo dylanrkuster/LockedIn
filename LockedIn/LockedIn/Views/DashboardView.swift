@@ -52,6 +52,14 @@ struct DashboardView: View {
 
                             Spacer(minLength: AppSpacing.xl)
 
+                            // Today's summary stats
+                            TodaySummary(
+                                transactions: bankState.recentTransactions,
+                                accentColor: bankState.difficulty.color
+                            )
+                            .padding(.horizontal, AppSpacing.lg)
+                            .padding(.bottom, AppSpacing.md)
+
                             // Footer sections
                             VStack(spacing: 0) {
                                 // Divider
