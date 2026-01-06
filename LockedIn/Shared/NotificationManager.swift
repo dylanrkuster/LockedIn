@@ -73,7 +73,7 @@ enum NotificationManager {
         post(
             identifier: Identifier.workoutSynced,
             title: appTitle,
-            body: "Nice. +\(earnedMinutes) min added to your bank."
+            body: "Workout complete. +\(earnedMinutes) min added to your bank."
         )
     }
 
@@ -83,7 +83,7 @@ enum NotificationManager {
         post(
             identifier: Identifier.workoutSynced,
             title: appTitle,
-            body: "+\(earnedMinutes) min added. Bank full."
+            body: "Workout complete. +\(earnedMinutes) min added. Bank full."
         )
     }
 

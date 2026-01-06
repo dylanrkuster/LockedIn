@@ -67,10 +67,11 @@ class DeviceActivityMonitorExtension: DeviceActivityMonitor {
         let previousUsed = SharedState.usedMinutesToday
         let currentBalance = SharedState.balance
 
-        // Calibration: events within first 10 seconds of monitoring start are retroactive.
+        // Calibration: events within first 30 seconds of monitoring start are retroactive.
         // DeviceActivity fires events for ALL thresholds already passed (prior usage today).
         // These fire within milliseconds; real usage events take 60+ seconds.
-        let calibrationWindow: TimeInterval = 10
+        // Extended from 10s to 30s for slower devices or system load.
+        let calibrationWindow: TimeInterval = 30
         let timeSinceMonitoringStarted = Date().timeIntervalSince1970 - SharedState.monitoringStartedAt
 
         if timeSinceMonitoringStarted < calibrationWindow {
@@ -78,6 +79,20 @@ class DeviceActivityMonitorExtension: DeviceActivityMonitor {
             SharedState.usedMinutesToday = max(SharedState.usedMinutesToday, minute)
             ExtensionLogger.logInterval("calibration", message: "synced to minute \(minute), time=\(String(format: "%.1f", timeSinceMonitoringStarted))s")
             SharedState.debugExtensionMessage = "Calibrated: min=\(minute)"
+            SharedState.synchronize()
+            return
+        }
+
+        // Sanity check: detect suspicious jumps that indicate late calibration or missed events.
+        // If minute jumps by more than 5 from our tracking, treat it as calibration.
+        // This handles edge cases where events arrive after the time-based calibration window.
+        let jump = minute - previousUsed
+        if jump > 5 {
+            // This is likely a late calibration event or we missed several events.
+            // Sync to the new minute without charging for all "missed" minutes.
+            SharedState.usedMinutesToday = minute
+            ExtensionLogger.logInterval("late_calibration", message: "jumped from \(previousUsed) to \(minute) (jump=\(jump))")
+            SharedState.debugExtensionMessage = "Late cal: \(previousUsed)→\(minute)"
             SharedState.synchronize()
             return
         }
@@ -104,8 +119,8 @@ class DeviceActivityMonitorExtension: DeviceActivityMonitor {
         // Update used minutes tracker
         SharedState.usedMinutesToday = minute
 
-        // Apply balance change
-        SharedState.balance = result.newBalance
+        // Apply balance change with inter-process lock to prevent races with main app
+        SharedState.atomicBalanceSet(result.newBalance)
 
         // Log the spend transaction
         if result.toDeduct > 0 {

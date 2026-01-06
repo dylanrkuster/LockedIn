@@ -12,12 +12,13 @@ import UIKit
 
 /// Provides custom shield configuration for blocked apps.
 /// Called by the system when a shielded app is opened.
+///
+/// Note: Extensions have tight memory limits (~6MB). We intentionally avoid
+/// caching UIImages across invocations since:
+/// 1. Icon creation is cheap (system SF Symbol)
+/// 2. Static caches persist and accumulate memory
+/// 3. System may spawn multiple extension instances
 class ShieldConfigurationExtension: ShieldConfigurationDataSource {
-
-    // MARK: - Cached Resources (Memory Optimization)
-
-    /// Cached icons by difficulty to avoid repeated UIImage allocation
-    private static var iconCache: [String: UIImage] = [:]
 
     // MARK: - Application Shields
 
@@ -51,15 +52,14 @@ class ShieldConfigurationExtension: ShieldConfigurationDataSource {
         // Track shield display for analytics (main app will log the event on foreground)
         SharedState.shieldDisplayCount += 1
 
-        // Get difficulty for color and caching
+        // Get difficulty for color
         let difficulty = SharedState.difficultyRaw
         let difficultyColor = getDifficultyColor(difficulty)
 
-        // Create lock icon with difficulty color (cached by difficulty)
+        // Create lock icon with difficulty color (no caching - see class docs)
         let icon = createColoredIcon(
             systemName: "lock.fill",
-            color: difficultyColor,
-            cacheKey: difficulty
+            color: difficultyColor
         )
 
         // Brutalist design: stark, direct, no-nonsense
@@ -101,19 +101,9 @@ class ShieldConfigurationExtension: ShieldConfigurationDataSource {
         }
     }
 
-    private func createColoredIcon(systemName: String, color: UIColor, cacheKey: String) -> UIImage? {
-        // Return cached icon if available
-        if let cached = Self.iconCache[cacheKey] {
-            return cached
-        }
-
-        // Create and cache the icon
+    private func createColoredIcon(systemName: String, color: UIColor) -> UIImage? {
         let config = UIImage.SymbolConfiguration(pointSize: 48, weight: .medium)
-        guard let icon = UIImage(systemName: systemName, withConfiguration: config)?
+        return UIImage(systemName: systemName, withConfiguration: config)?
             .withTintColor(color, renderingMode: .alwaysOriginal)
-        else { return nil }
-
-        Self.iconCache[cacheKey] = icon
-        return icon
     }
 }

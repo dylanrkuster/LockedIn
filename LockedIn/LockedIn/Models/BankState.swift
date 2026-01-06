@@ -10,6 +10,9 @@ import Foundation
 
 @Observable
 final class BankState {
+    /// Flag to skip SharedState persistence in didSet (used when persistence is handled elsewhere)
+    private var skipPersistence = false
+
     var balance: Int {
         didSet {
             let clamped = max(0, min(balance, maxBalance))
@@ -34,9 +37,11 @@ final class BankState {
                     AnalyticsManager.track(.balanceRecovered(minutesToRecover: balance))
                 }
 
-                // Persist to SharedState for extension access
-                SharedState.balance = balance
-                SharedState.synchronize()
+                // Persist to SharedState for extension access (unless already persisted atomically)
+                if !skipPersistence {
+                    SharedState.balance = balance
+                    SharedState.synchronize()
+                }
             }
         }
     }
@@ -129,11 +134,18 @@ final class BankState {
     ///   - workoutMinutes: Duration of the workout in minutes
     ///   - source: Display name for the workout type (e.g., "Run", "HIIT")
     ///   - timestamp: When the workout ended (defaults to now)
-    func earn(workoutMinutes: Int, source: String, timestamp: Date = Date()) {
+    /// - Returns: The actual minutes earned (may be capped)
+    @discardableResult
+    func earn(workoutMinutes: Int, source: String, timestamp: Date = Date()) -> Int {
         let earnedMinutes = Int(Double(workoutMinutes) * difficulty.screenMinutesPerWorkoutMinute)
-        let actualEarned = min(earnedMinutes, maxBalance - balance)
 
-        guard actualEarned > 0 else { return }
+        // Use atomic balance add to prevent race with extension deductions.
+        // This reads current SharedState balance, adds earnings, and writes back atomically.
+        let balanceBefore = SharedState.balance
+        let newBalance = SharedState.atomicBalanceAdd(earnedMinutes, maxBalance: maxBalance)
+        let actualEarned = newBalance - balanceBefore
+
+        guard actualEarned > 0 else { return 0 }
 
         let transaction = Transaction(
             id: UUID(),
@@ -142,10 +154,16 @@ final class BankState {
             timestamp: timestamp
         )
         transactions.append(transaction)
-        balance += actualEarned
+
+        // Sync local balance to match SharedState without triggering re-persistence
+        skipPersistence = true
+        balance = newBalance
+        skipPersistence = false
 
         // Persist transaction
         SharedState.appendTransaction(TransactionRecord(from: transaction))
+
+        return actualEarned
     }
 
     /// Deduct minutes from balance (from app usage)
@@ -180,15 +198,16 @@ final class BankState {
     /// Sync both balance and transactions from SharedState
     /// Used when returning from background to pick up extension changes
     func syncFromSharedState() {
-        // Temporarily disable didSet persistence by setting directly
         let sharedBalance = SharedState.balance
         let sharedTransactions = SharedState.transactions.map { $0.toTransaction() }
 
         // Update without triggering persistence (it's already persisted)
         self.transactions = sharedTransactions
 
-        // Clamp to current difficulty max
+        // Clamp to current difficulty max, skip re-persistence
+        skipPersistence = true
         self.balance = max(0, min(sharedBalance, maxBalance))
+        skipPersistence = false
     }
 }
 

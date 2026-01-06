@@ -29,6 +29,13 @@ final class HealthKitManager {
     init() {
         // Authorization status for read-only access cannot be reliably checked
         // We'll optimistically attempt queries after requesting authorization
+
+        // CRITICAL: Start observing immediately if user has completed onboarding.
+        // This ensures workout detection works during background launches.
+        // Without this, HealthKit wakes the app but the observer isn't ready.
+        if SharedState.hasCompletedOnboarding {
+            startObserving()
+        }
     }
 
     deinit {
@@ -98,7 +105,9 @@ final class HealthKitManager {
 
     // MARK: - Background Observation
 
-    /// Start observing for new workout data in background
+    /// Start observing for new workout data in background.
+    /// IMPORTANT: This should be called as early as possible in the app lifecycle
+    /// (ideally in App.init) to handle background launches from HealthKit.
     func startObserving() {
         guard observerQuery == nil else { return }
 
@@ -113,8 +122,9 @@ final class HealthKitManager {
                 return
             }
 
-            // Fetch new workouts and notify
-            Task { @MainActor [weak self] in
+            // Fetch and process new workouts
+            // This runs even during background launches when UI isn't visible
+            Task { [weak self] in
                 guard let self else {
                     completionHandler()
                     return
@@ -125,7 +135,13 @@ final class HealthKitManager {
                     let newWorkouts = try await self.fetchNewWorkouts(excludingIDs: processedIDs)
 
                     if !newWorkouts.isEmpty {
-                        self.onWorkoutsDetected?(newWorkouts)
+                        // Process workouts directly to SharedState (works in background)
+                        Self.processWorkoutsToSharedState(newWorkouts)
+
+                        // Also notify UI callback if set (for foreground updates)
+                        await MainActor.run {
+                            self.onWorkoutsDetected?(newWorkouts)
+                        }
                     }
                 } catch {
                     print("HealthKit observer query failed: \(error)")
@@ -142,7 +158,72 @@ final class HealthKitManager {
             healthStore.enableBackgroundDelivery(
                 for: workoutType,
                 frequency: .immediate
-            ) { _, _ in }
+            ) { success, error in
+                if let error {
+                    print("Failed to enable HealthKit background delivery: \(error)")
+                }
+            }
+        }
+    }
+
+    // MARK: - Background Processing
+
+    /// Process workouts directly to SharedState without requiring BankState.
+    /// This enables workout processing during background launches when the UI isn't loaded.
+    private static func processWorkoutsToSharedState(_ workouts: [HKWorkout]) {
+        let difficulty = Difficulty(rawValue: SharedState.difficultyRaw) ?? .medium
+        let maxBalance = difficulty.maxBalance
+
+        for workout in workouts {
+            let workoutID = workout.uuid.uuidString
+
+            // Skip if already processed
+            guard !SharedState.processedWorkoutIDs.contains(workoutID) else { continue }
+
+            let durationMinutes = Int(workout.duration / 60)
+            guard durationMinutes > 0 else { continue }
+
+            // Calculate earned minutes
+            let earnedMinutes = Int(Double(durationMinutes) * difficulty.screenMinutesPerWorkoutMinute)
+            let balanceBefore = SharedState.balance
+            let newBalance = SharedState.atomicBalanceAdd(earnedMinutes, maxBalance: maxBalance)
+            let actualEarned = newBalance - balanceBefore
+
+            guard actualEarned > 0 else {
+                // Still mark as processed even if bank was full
+                SharedState.markWorkoutProcessed(workoutID)
+                continue
+            }
+
+            // Create and persist transaction
+            let source = displayName(for: workout.workoutActivityType)
+            let transaction = TransactionRecord(
+                amount: actualEarned,
+                source: source,
+                timestamp: workout.endDate
+            )
+            SharedState.appendTransaction(transaction)
+
+            // Post notification if enabled
+            if SharedState.notifyWorkoutSync {
+                let potentialEarned = earnedMinutes
+                if actualEarned < potentialEarned {
+                    NotificationManager.postWorkoutSyncedCapped(earnedMinutes: actualEarned)
+                } else {
+                    NotificationManager.postWorkoutSynced(earnedMinutes: actualEarned)
+                }
+            }
+
+            // Reset low-balance notification flags if balance now above thresholds
+            SharedState.resetNotificationFlags(for: newBalance)
+
+            // Mark as processed and increment count
+            SharedState.markWorkoutProcessed(workoutID)
+            SharedState.workoutCount += 1
+
+            // Update last sync time
+            SharedState.lastHealthKitSync = Date()
+            SharedState.synchronize()
         }
     }
 

@@ -470,6 +470,8 @@ private struct DifficultyScreen: View {
     @Binding var selectedDifficulty: Difficulty
     let onContinue: () -> Void
 
+    @State private var showExtremeConfirmation = false
+
     var body: some View {
         VStack(spacing: 0) {
             Spacer()
@@ -513,10 +515,26 @@ private struct DifficultyScreen: View {
 
             Spacer()
 
-            // Continue button (always enabled - has default selection)
-            OnboardingButton(title: "CONTINUE", action: onContinue)
-                .padding(.horizontal, AppSpacing.lg)
-                .padding(.bottom, AppSpacing.xxl)
+            // Continue button - show confirmation for EXTREME
+            OnboardingButton(title: "CONTINUE") {
+                if selectedDifficulty == .extreme {
+                    showExtremeConfirmation = true
+                } else {
+                    onContinue()
+                }
+            }
+            .padding(.horizontal, AppSpacing.lg)
+            .padding(.bottom, AppSpacing.xxl)
+        }
+        .alert("Start at Zero?", isPresented: $showExtremeConfirmation) {
+            Button("Choose Different", role: .cancel) {
+                // User wants to reconsider
+            }
+            Button("I'm Ready", role: .destructive) {
+                onContinue()
+            }
+        } message: {
+            Text("EXTREME starts with 0 minutes. Your blocked apps will be locked immediately until you complete a workout. Are you sure?")
         }
     }
 }
@@ -635,6 +653,7 @@ private struct PermissionsScreen: View {
                 title: "SCREEN TIME ACCESS",
                 subtitle: "Required to block apps.",
                 isGranted: hasGrantedScreenTime,
+                grantedLabel: "GRANTED",
                 isRequired: true,
                 isLoading: isLoadingScreenTime,
                 onRequest: {
@@ -650,11 +669,12 @@ private struct PermissionsScreen: View {
             Spacer()
                 .frame(height: AppSpacing.md)
 
-            // Health permission (required, but can't verify grant status)
+            // Health permission (required, but can't verify grant status due to privacy)
             PermissionBlock(
                 title: "APPLE HEALTH ACCESS",
-                subtitle: "Required to track workouts.",
+                subtitle: "Required to track workouts. If workouts don't sync, verify in Settings > Privacy > Health.",
                 isGranted: hasRequestedHealth,
+                grantedLabel: "REQUESTED",  // Can't verify actual grant due to HealthKit privacy
                 isRequired: true,
                 isLoading: isLoadingHealth,
                 onRequest: {
@@ -675,6 +695,7 @@ private struct PermissionsScreen: View {
                 title: "NOTIFICATIONS",
                 subtitle: "Get useful reminders.",
                 isGranted: hasGrantedNotifications,
+                grantedLabel: "GRANTED",
                 isRequired: false,
                 isLoading: isLoadingNotifications,
                 onRequest: {
@@ -707,9 +728,15 @@ private struct PermissionBlock: View {
     let title: String
     let subtitle: String
     let isGranted: Bool
+    let grantedLabel: String  // "GRANTED" or "REQUESTED" depending on verifiability
     let isRequired: Bool
     let isLoading: Bool
     let onRequest: () -> Void
+
+    /// Color for the granted state - green for verified, yellow for unverified
+    private var grantedColor: Color {
+        grantedLabel == "GRANTED" ? AppColor.easy : AppColor.medium
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: AppSpacing.md) {
@@ -735,13 +762,13 @@ private struct PermissionBlock: View {
             // Grant button or status
             if isGranted {
                 HStack(spacing: AppSpacing.sm) {
-                    Image(systemName: "checkmark.circle.fill")
+                    Image(systemName: grantedLabel == "GRANTED" ? "checkmark.circle.fill" : "questionmark.circle.fill")
                         .font(.system(size: 18))
-                        .foregroundStyle(AppColor.easy)
-                    Text("GRANTED")
+                        .foregroundStyle(grantedColor)
+                    Text(grantedLabel)
                         .font(AppFont.label(13))
                         .tracking(2)
-                        .foregroundStyle(AppColor.easy)
+                        .foregroundStyle(grantedColor)
                 }
                 .frame(maxWidth: .infinity)
                 .frame(height: 48)

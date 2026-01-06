@@ -174,12 +174,15 @@ struct LockedInApp: App {
     // MARK: - HealthKit Setup
 
     private func setupHealthKit() {
-        // Set up workout detection callback
-        healthKitManager.onWorkoutsDetected = { workouts in
-            processNewWorkouts(workouts)
+        // Set up workout detection callback for UI updates.
+        // Note: Background processing happens directly in HealthKitManager via SharedState,
+        // so this callback is only for refreshing the UI when app is in foreground.
+        healthKitManager.onWorkoutsDetected = { [weak bankState] _ in
+            // Sync UI state from SharedState (workouts already processed in background)
+            bankState?.syncFromSharedState()
         }
 
-        // Request authorization and start observing
+        // Request authorization if not already done
         // Note: For read-only access, we can't reliably check if user granted permission.
         // We optimistically attempt queries after requesting authorization.
         Task {
@@ -190,7 +193,8 @@ struct LockedInApp: App {
                 // If user denied access, queries will return empty results (no error)
                 await syncWorkouts()
 
-                // Start background observation
+                // Observation auto-starts in HealthKitManager.init() if onboarding complete,
+                // but call it here too in case this is first launch after onboarding
                 healthKitManager.startObserving()
             } catch {
                 print("HealthKit authorization failed: \(error)")
@@ -217,11 +221,9 @@ struct LockedInApp: App {
     }
 
     private func processNewWorkouts(_ workouts: [HKWorkout]) {
-        // Sync state from SharedState to ensure accurate cap calculation.
-        // Without this, bankState.balance may be stale when HKObserverQuery
-        // fires in background (extension updates SharedState, but bankState
-        // only syncs on foreground).
-        bankState.syncFromSharedState()
+        // Note: We no longer call syncFromSharedState() here because earn() now uses
+        // atomic operations that read the latest SharedState balance. This prevents
+        // race conditions where extension deductions could be overwritten.
 
         for workout in workouts {
             let workoutID = workout.uuid.uuidString
@@ -235,20 +237,16 @@ struct LockedInApp: App {
 
             // Calculate potential earned (before cap)
             let potentialEarned = Int(Double(durationMinutes) * bankState.difficulty.screenMinutesPerWorkoutMinute)
-            let balanceBefore = bankState.balance
 
             // Get workout type display name
             let source = HealthKitManager.displayName(for: workout.workoutActivityType)
 
-            // Add to balance
-            bankState.earn(
+            // Add to balance - earn() uses atomic operations to prevent race conditions
+            let actualEarned = bankState.earn(
                 workoutMinutes: durationMinutes,
                 source: source,
                 timestamp: workout.endDate
             )
-
-            // Calculate actual earned (may be capped)
-            let actualEarned = bankState.balance - balanceBefore
 
             // Post notification if enabled
             if SharedState.notifyWorkoutSync && actualEarned > 0 {
@@ -312,13 +310,22 @@ struct LockedInApp: App {
             selection: familyControlsManager.selection
         )
 
-        // Start monitoring only if it's not already running
-        // (Don't restart if running - that would reset the device's usage counter!)
+        // Ensure monitoring is active. Check for build changes (belt-and-suspenders
+        // with setupBlocking, but handles edge cases like background launch).
         if familyControlsManager.isAuthorized && familyControlsManager.hasBlockedApps {
+            let currentBuild = Bundle.main.infoDictionary?["CFBundleVersion"] as? String
+            let buildChanged = currentBuild != SharedState.lastKnownBuildVersion
+
+            if buildChanged {
+                SharedState.lastKnownBuildVersion = currentBuild
+                SharedState.synchronize()
+            }
+
             do {
-                try blockingManager.startMonitoringIfNeeded(
+                try blockingManager.updateMonitoring(
+                    balance: bankState.balance,
                     selection: familyControlsManager.selection,
-                    balance: bankState.balance
+                    forceRestart: buildChanged
                 )
             } catch {
                 print("Failed to start monitoring: \(error)")
@@ -360,17 +367,22 @@ struct LockedInApp: App {
               familyControlsManager.hasBlockedApps
         else { return }
 
-        // Sync shield state based on current balance
-        blockingManager.syncShieldState(
-            balance: bankState.balance,
-            selection: familyControlsManager.selection
-        )
+        // Check if app was updated/reinstalled (build version changed).
+        // When this happens, DeviceActivity monitoring must be force-restarted
+        // because the extension binary was replaced and the old schedule is orphaned.
+        let currentBuild = Bundle.main.infoDictionary?["CFBundleVersion"] as? String
+        let buildChanged = currentBuild != SharedState.lastKnownBuildVersion
 
-        // Start monitoring for usage (only if not already running)
+        if buildChanged {
+            SharedState.lastKnownBuildVersion = currentBuild
+            SharedState.synchronize()
+        }
+
         do {
-            try blockingManager.startMonitoringIfNeeded(
+            try blockingManager.updateMonitoring(
+                balance: bankState.balance,
                 selection: familyControlsManager.selection,
-                balance: bankState.balance
+                forceRestart: buildChanged
             )
         } catch {
             print("Failed to start monitoring: \(error)")

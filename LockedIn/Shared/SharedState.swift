@@ -173,9 +173,15 @@ enum SharedState {
 
     /// Merge pending transactions into main array (call from main app on foreground).
     /// Also performs 7-day pruning.
+    ///
+    /// IMPORTANT: This uses ID-based removal to prevent race conditions.
+    /// If extension appends a new transaction while we're merging, it won't be lost.
     static func mergePendingTransactions() {
         let pending = pendingTransactions
         guard !pending.isEmpty else { return }
+
+        // Capture the IDs of transactions we're about to merge
+        let pendingIDs = Set(pending.map { $0.id })
 
         // Read main transactions directly (skip pending in getter)
         var main: [TransactionRecord] = []
@@ -194,9 +200,27 @@ enum SharedState {
             defaults.set(encoded, forKey: Keys.transactions)
         }
 
-        // Clear pending
-        defaults.removeObject(forKey: Keys.pendingTransactions)
+        // Re-read pending and only remove the specific IDs we processed.
+        // This preserves any transactions the extension added while we were merging.
+        var currentPending = pendingTransactions
+        let countBefore = currentPending.count
+        currentPending.removeAll { pendingIDs.contains($0.id) }
+
+        if currentPending.isEmpty {
+            defaults.removeObject(forKey: Keys.pendingTransactions)
+        } else {
+            // Some new transactions arrived during merge - preserve them
+            pendingTransactions = currentPending
+        }
+
         synchronize()
+
+        // Log if we preserved transactions (useful for debugging)
+        if !currentPending.isEmpty {
+            let preserved = currentPending.count
+            let merged = countBefore - preserved
+            print("[SharedState] Merged \(merged) transactions, preserved \(preserved) new arrivals")
+        }
     }
 
     // MARK: - HealthKit Tracking
@@ -355,6 +379,13 @@ enum SharedState {
         set { defaults.set(newValue, forKey: Keys.lastKnownShieldDisplayCount) }
     }
 
+    /// Last known app build version. Used to detect app updates/reinstalls
+    /// and force-restart DeviceActivity monitoring when the extension binary changes.
+    static var lastKnownBuildVersion: String? {
+        get { defaults.string(forKey: Keys.lastKnownBuildVersion) }
+        set { defaults.set(newValue, forKey: Keys.lastKnownBuildVersion) }
+    }
+
     // MARK: - Notification Settings
 
     /// Whether to notify at 5 min remaining (default: true)
@@ -449,6 +480,71 @@ enum SharedState {
         extensionHeartbeat = Date()
     }
 
+    // MARK: - Inter-Process Locking
+
+    /// File URL for balance lock (inter-process synchronization)
+    private static let balanceLockURL: URL? = {
+        guard let containerURL = FileManager.default.containerURL(
+            forSecurityApplicationGroupIdentifier: suiteName
+        ) else { return nil }
+        return containerURL.appendingPathComponent(".balance.lock")
+    }()
+
+    /// Execute a closure with an exclusive inter-process lock on balance operations.
+    /// This prevents race conditions between main app and extensions when modifying balance.
+    /// - Parameter operation: The operation to perform while holding the lock
+    /// - Returns: The result of the operation
+    static func withBalanceLock<T>(_ operation: () -> T) -> T {
+        guard let lockURL = balanceLockURL else {
+            // Fallback: execute without lock if container not available
+            return operation()
+        }
+
+        // Create lock file if it doesn't exist
+        if !FileManager.default.fileExists(atPath: lockURL.path) {
+            FileManager.default.createFile(atPath: lockURL.path, contents: nil)
+        }
+
+        let fd = open(lockURL.path, O_RDWR)
+        guard fd >= 0 else {
+            // Fallback: execute without lock if file can't be opened
+            return operation()
+        }
+        defer { close(fd) }
+
+        // Acquire exclusive lock (blocks until available)
+        flock(fd, LOCK_EX)
+        defer { flock(fd, LOCK_UN) }
+
+        return operation()
+    }
+
+    /// Atomically add to balance (read-modify-write with lock).
+    /// Use this instead of directly setting balance when adding earned minutes.
+    /// - Parameters:
+    ///   - amount: Minutes to add (positive) or subtract (negative)
+    ///   - maxBalance: Maximum allowed balance (for capping)
+    /// - Returns: The new balance after the operation
+    @discardableResult
+    static func atomicBalanceAdd(_ amount: Int, maxBalance: Int) -> Int {
+        withBalanceLock {
+            let current = balance
+            let newBalance = max(0, min(current + amount, maxBalance))
+            balance = newBalance
+            synchronize()
+            return newBalance
+        }
+    }
+
+    /// Atomically set balance with lock protection.
+    /// Use this when setting balance from extension to prevent races.
+    static func atomicBalanceSet(_ newBalance: Int) {
+        withBalanceLock {
+            balance = newBalance
+            synchronize()
+        }
+    }
+
     // MARK: - Keys
 
     private enum Keys {
@@ -494,6 +590,7 @@ enum SharedState {
         static let firstBlockHitRecorded = "firstBlockHitRecorded"
         static let shieldDisplayCount = "shieldDisplayCount"
         static let lastKnownShieldDisplayCount = "lastKnownShieldDisplayCount"
+        static let lastKnownBuildVersion = "lastKnownBuildVersion"
     }
 
     // MARK: - Sync
