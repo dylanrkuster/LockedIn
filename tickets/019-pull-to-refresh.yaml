@@ -3,7 +3,7 @@ type: improvement
 title: Add pull-to-refresh to sync workouts
 priority: P2
 complexity: trivial
-status: pending
+status: closed
 
 po_notes: |
   - Standard iOS UX pattern users expect
