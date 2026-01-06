@@ -7,6 +7,7 @@ import FirebaseCore
 import HealthKit
 import StoreKit
 import SwiftUI
+import UserNotifications
 
 @main
 struct LockedInApp: App {
@@ -18,6 +19,9 @@ struct LockedInApp: App {
 
     init() {
         FirebaseApp.configure()
+
+        // Enable foreground notification display
+        UNUserNotificationCenter.current().delegate = NotificationDelegate.shared
 
         // Set install date on first launch (for analytics)
         if SharedState.installDate == nil {
@@ -244,16 +248,9 @@ struct LockedInApp: App {
             if SharedState.notifyWorkoutSync && actualEarned > 0 {
                 if actualEarned < potentialEarned {
                     // Some earnings were lost to cap
-                    NotificationManager.postWorkoutSyncedCapped(
-                        earnedMinutes: actualEarned,
-                        workoutMinutes: potentialEarned
-                    )
+                    NotificationManager.postWorkoutSyncedCapped(earnedMinutes: actualEarned)
                 } else {
-                    NotificationManager.postWorkoutSynced(
-                        earnedMinutes: actualEarned,
-                        newBalance: bankState.balance,
-                        maxBalance: bankState.maxBalance
-                    )
+                    NotificationManager.postWorkoutSynced(earnedMinutes: actualEarned)
                 }
             }
 

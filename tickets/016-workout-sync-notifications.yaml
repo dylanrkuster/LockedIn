@@ -3,7 +3,7 @@ type: bug
 title: Workout sync notifications not firing
 priority: P1
 complexity: simple
-status: open
+status: closed
 
 po_notes: |
   - Affects core loop feedback (earn side)
