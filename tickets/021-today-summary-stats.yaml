@@ -1,0 +1,163 @@
+id: '021'
+type: improvement
+title: Add Today's summary stats to dashboard
+priority: P2
+complexity: trivial
+status: pending
+
+po_notes: |
+  - MVP.md says "Basic 'today' view is enough" - this delivers it
+  - Reinforces daily earn/spend cycle visibility
+  - Primary persona: Recovering Scroller wants to see daily progress
+  - Simple computation from existing transaction data
+  - No "detailed analytics" scope creep
+
+description: |
+  Users can't quickly see "How am I doing today?" Activity section shows
+  individual transactions but no aggregate. Add a compact Today summary
+  showing earned, spent, and net for the current day.
+
+acceptance_criteria:
+  - Dashboard shows "TODAY" summary row
+  - Summary displays: earned today, spent today, net change
+  - Earned shown in green (+), spent shown in neutral, net with +/- sign
+  - Updates in real-time as transactions occur
+  - Shows "—" or "0" appropriately when no activity today
+  - Positioned above ACTIVITY section (below progress bar)
+  - Matches brutalist design aesthetic
+
+design_notes: |
+  ## Visual Design (per MVP.md Appendix D)
+
+  Layout inspired by activity ledger format:
+  ```
+  TODAY                    +45   -32   NET +13
+  ```
+
+  Or vertical compact:
+  ```
+  TODAY
+  Earned +45 · Spent 32 · Net +13
+  ```
+
+  **Typography:**
+  - "TODAY" label: AppFont.label(11), tracking 3, textSecondary
+  - Numbers: AppFont.mono, textPrimary
+  - Earned amount: difficulty accent color (positive = good)
+  - Spent amount: textSecondary (neutral, expected behavior)
+  - Net amount: accent if positive, textSecondary if negative/zero
+
+  **Spacing:**
+  - Same horizontal padding as other sections (AppSpacing.lg)
+  - Separated from progress bar by AppSpacing.lg
+  - Divider above ACTIVITY section remains
+
+  ## What NOT to Do
+
+  - No charts or graphs
+  - No percentage calculations
+  - No comparison to yesterday/average
+  - No motivational messages based on net
+
+implementation_notes: |
+  ## Files to Modify
+
+  - LockedIn/LockedIn/Views/DashboardView.swift (add section)
+  - Possibly create Views/Components/TodaySummary.swift (if complex enough)
+
+  ## Computation
+
+  Filter transactions to today only, then aggregate:
+
+  ```swift
+  private var todayStats: (earned: Int, spent: Int, net: Int) {
+      let calendar = Calendar.current
+      let today = calendar.startOfDay(for: Date())
+
+      let todayTransactions = bankState.transactions.filter {
+          calendar.isDate($0.timestamp, inSameDayAs: today)
+      }
+
+      let earned = todayTransactions
+          .filter { $0.amount > 0 }
+          .reduce(0) { $0 + $1.amount }
+
+      let spent = todayTransactions
+          .filter { $0.amount < 0 }
+          .reduce(0) { $0 + abs($1.amount) }
+
+      return (earned: earned, spent: spent, net: earned - spent)
+  }
+  ```
+
+  ## Component
+
+  ```swift
+  struct TodaySummary: View {
+      let earned: Int
+      let spent: Int
+      let net: Int
+      let accentColor: Color
+
+      var body: some View {
+          HStack {
+              Text("TODAY")
+                  .font(AppFont.label(11))
+                  .tracking(3)
+                  .foregroundStyle(AppColor.textSecondary)
+
+              Spacer()
+
+              HStack(spacing: AppSpacing.md) {
+                  statItem("+\(earned)", color: accentColor)
+                  statItem("-\(spent)", color: AppColor.textSecondary)
+                  netItem
+              }
+          }
+      }
+
+      private func statItem(_ text: String, color: Color) -> some View {
+          Text(text)
+              .font(AppFont.mono)
+              .foregroundStyle(color)
+      }
+
+      private var netItem: some View {
+          let prefix = net >= 0 ? "+" : ""
+          let color = net > 0 ? accentColor : AppColor.textSecondary
+          return Text("NET \(prefix)\(net)")
+              .font(AppFont.mono)
+              .foregroundStyle(color)
+      }
+  }
+  ```
+
+  ## Dashboard Integration
+
+  Add between progress bar spacer and footer VStack:
+
+  ```swift
+  // Today's summary
+  TodaySummary(
+      earned: todayStats.earned,
+      spent: todayStats.spent,
+      net: todayStats.net,
+      accentColor: bankState.difficulty.color
+  )
+  .padding(.horizontal, AppSpacing.lg)
+  .padding(.bottom, AppSpacing.md)
+  ```
+
+  ## Edge Cases
+
+  - No transactions today: show "+0  -0  NET 0" or "—  —  —"
+  - Only earned today: spent shows 0
+  - Only spent today: earned shows 0
+  - Transaction at midnight boundary: use device timezone
+
+out_of_scope:
+  - Weekly/monthly summaries
+  - Historical comparison ("vs yesterday")
+  - Graphs or visualizations
+  - Percentage of cap used
+  - Time-of-day breakdown

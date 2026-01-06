@@ -1,0 +1,82 @@
+id: '018'
+type: improvement
+title: Add About section to Settings screen
+priority: P2
+complexity: trivial
+status: pending
+
+po_notes: |
+  - Polish item for MVP launch
+  - Provides version info for support/debugging
+  - Feedback link drives user communication
+  - Minimal scope: just version + feedback, no bloat
+
+description: |
+  Settings screen is incomplete. Users have no way to see app version
+  or send feedback. Add a minimal About section.
+
+acceptance_criteria:
+  - Settings screen shows "ABOUT" section at bottom
+  - About section displays app version (e.g., "Version 1.0.0")
+  - About section includes "Send Feedback" link
+  - Feedback link opens email composer or system share sheet
+  - Design matches existing Settings aesthetic (brutalist, minimal)
+
+design_notes: |
+  ## Visual Design (per MVP.md Appendix D)
+
+  Follow existing SettingsView patterns:
+  - Section header: "ABOUT" in AppFont.label(11), tracking 3, textSecondary
+  - Version text: AppFont.body, textSecondary, left-aligned
+  - Feedback link: AppFont.body, accent color, underlined (interactive text pattern)
+
+  ## Layout
+
+  ```
+  ABOUT
+  Version 1.0.0
+  Send Feedback
+  ```
+
+  - Standard section spacing (AppSpacing.md between items)
+  - No icons, no decorations
+  - Version should pull from Bundle.main.infoDictionary
+
+implementation_notes: |
+  ## Files to Modify
+
+  - LockedIn/LockedIn/Views/SettingsView.swift
+
+  ## Version Retrieval
+
+  ```swift
+  private var appVersion: String {
+      let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0"
+      let build = Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "1"
+      return "Version \(version) (\(build))"
+  }
+  ```
+
+  ## Feedback Link Options
+
+  Option A: Email composer (requires import MessageUI)
+  Option B: Open mailto: URL (simpler, falls back to Mail app)
+  Option C: System share sheet with pre-filled text
+
+  Recommend Option B for simplicity:
+  ```swift
+  if let url = URL(string: "mailto:feedback@lockedin.app?subject=LockedIn%20Feedback") {
+      UIApplication.shared.open(url)
+  }
+  ```
+
+  ## Section Placement
+
+  Add after existing NOTIFICATIONS section with appropriate spacing.
+
+out_of_scope:
+  - Privacy policy link
+  - Terms of service link
+  - Rate app prompt
+  - Social media links
+  - Detailed changelog

@@ -1,0 +1,117 @@
+id: '020'
+type: improvement
+title: Visual warning state for low balance
+priority: P2
+complexity: trivial
+status: pending
+
+po_notes: |
+  - Creates urgency without words - psychological pressure
+  - Aligns with 5-min notification threshold
+  - "The block is coming" made visible
+  - Functional motion, not decoration (per Appendix D)
+  - Reinforces core loop: earn before you hit zero
+
+description: |
+  Balance at 5 minutes looks identical to balance at 50 minutes.
+  No visual signal that "the block is coming." Add subtle warning
+  treatment when balance is critically low.
+
+acceptance_criteria:
+  - When balance <= 5 minutes, balance number shows warning state
+  - Warning state uses slow, subtle pulse animation (opacity)
+  - Progress bar fill changes to warning color (red) when <= 5 min
+  - Animation is functional feedback, not celebratory
+  - Warning state deactivates when balance > 5 minutes
+  - Works correctly across all difficulty levels
+
+design_notes: |
+  ## Visual Design (per MVP.md Appendix D)
+
+  Core principles to respect:
+  - "Motion only for state changes, never for decoration"
+  - "Tension: The design creates subtle psychological pressure"
+  - Animation curves: .easeInOut only (no spring/bounce)
+  - Animation durations: keep subtle (2-3s cycle for pulse)
+
+  ## Warning Treatment
+
+  **Balance Number:**
+  - Slow opacity pulse: 1.0 → 0.6 → 1.0 over ~2.5s
+  - Continuous while balance <= 5
+  - NOT a rapid flash (too aggressive), NOT a color change (keep white)
+
+  **Progress Bar:**
+  - Fill color overrides to AppColor.extreme (red) regardless of difficulty
+  - Signals danger universally
+  - No animation on the bar itself (pulse is enough)
+
+  ## Threshold
+
+  - Trigger at balance <= 5 (matches 5-min notification)
+  - Could consider 0 as special "locked" state, but that's handled by shield
+
+  ## What NOT to Do
+
+  - No shaking or bouncing (too playful)
+  - No sound effects
+  - No color change on balance number (maintain hierarchy)
+  - No banner or overlay message
+
+implementation_notes: |
+  ## Files to Modify
+
+  - LockedIn/LockedIn/Views/Components/BalanceDisplay.swift (pulse animation)
+  - LockedIn/LockedIn/Views/Components/ProgressBar.swift (color override)
+
+  ## Balance Display Pulse
+
+  ```swift
+  @State private var isPulsing = false
+
+  private var isLowBalance: Bool {
+      balance <= 5
+  }
+
+  var body: some View {
+      Text("\(balance)")
+          .opacity(isPulsing && isLowBalance ? 0.6 : 1.0)
+          .animation(
+              isLowBalance
+                  ? .easeInOut(duration: 1.25).repeatForever(autoreverses: true)
+                  : .default,
+              value: isPulsing
+          )
+          .onAppear { isPulsing = true }
+          .onChange(of: isLowBalance) { _, newValue in
+              // Reset animation state when crossing threshold
+              isPulsing = newValue
+          }
+  }
+  ```
+
+  ## Progress Bar Color Override
+
+  ```swift
+  private var effectiveColor: Color {
+      if current <= 5 {
+          return AppColor.extreme  // Red warning regardless of difficulty
+      }
+      return accentColor
+  }
+  ```
+
+  ## Testing
+
+  - Use preview with balance = 5 to verify pulse
+  - Use preview with balance = 6 to verify no pulse
+  - Verify color change on progress bar at threshold
+  - Test transition: balance going 6 → 5 → 4 (animation starts)
+  - Test transition: balance going 4 → 5 → 6 (animation stops)
+
+out_of_scope:
+  - Different thresholds (10 min, 15 min variants)
+  - User-configurable warning threshold
+  - Haptic feedback when entering warning state
+  - Sound effects
+  - Warning banner or toast

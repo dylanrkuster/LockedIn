@@ -1,0 +1,89 @@
+id: '019'
+type: improvement
+title: Add pull-to-refresh to sync workouts
+priority: P2
+complexity: trivial
+status: pending
+
+po_notes: |
+  - Standard iOS UX pattern users expect
+  - Reduces "why didn't my workout sync?" friction
+  - Builds trust in the earn mechanism
+  - Primary persona benefit: Recovering Scroller wants confirmation
+
+description: |
+  No manual way to trigger workout sync. Users may doubt their workout
+  registered, especially if balance doesn't update immediately. Add
+  pull-to-refresh gesture to dashboard.
+
+acceptance_criteria:
+  - Dashboard supports pull-to-refresh gesture
+  - Pull triggers HealthKit workout sync
+  - Refresh indicator uses difficulty accent color
+  - Gesture completes when sync finishes (or times out after 3s)
+  - Works on the main dashboard scroll area
+
+design_notes: |
+  ## Visual Design (per MVP.md Appendix D)
+
+  - Use SwiftUI's native .refreshable modifier
+  - Tint the progress indicator with difficulty accent color
+  - No custom animations or celebratory feedback
+  - Mechanical, functional feedback only
+
+  ## Behavior
+
+  - Pull gesture at top of dashboard content
+  - Standard iOS pull-to-refresh animation
+  - On release: trigger HealthKit sync
+  - Complete when sync returns (success or failure)
+  - No toast/banner on completion (balance update is the feedback)
+
+implementation_notes: |
+  ## Files to Modify
+
+  - LockedIn/LockedIn/Views/DashboardView.swift
+  - May need to expose sync method from HealthKitManager or similar
+
+  ## Implementation
+
+  Wrap dashboard content in ScrollView with .refreshable:
+
+  ```swift
+  ScrollView {
+      // existing VStack content
+  }
+  .refreshable {
+      await syncWorkouts()
+  }
+  .tint(bankState.difficulty.color)
+  ```
+
+  ## Sync Method
+
+  Need async method that:
+  1. Triggers HealthKit query for recent workouts
+  2. Processes any new workouts found
+  3. Updates bank state
+  4. Returns when complete
+
+  If HealthKitManager doesn't have this, add:
+  ```swift
+  func syncWorkoutsAsync() async {
+      await withCheckedContinuation { continuation in
+          syncWorkouts { continuation.resume() }
+      }
+  }
+  ```
+
+  ## Edge Cases
+
+  - No new workouts found: complete silently (not an error)
+  - HealthKit permission denied: complete silently (already handled elsewhere)
+  - Network/sync failure: complete after timeout, no error shown
+
+out_of_scope:
+  - Success/failure toast messages
+  - "Last synced" timestamp display
+  - Automatic periodic refresh
+  - Haptic feedback on refresh
