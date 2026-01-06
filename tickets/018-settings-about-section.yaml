@@ -3,7 +3,7 @@ type: improvement
 title: Add About section to Settings screen
 priority: P2
 complexity: trivial
-status: pending
+status: closed
 
 po_notes: |
   - Polish item for MVP launch

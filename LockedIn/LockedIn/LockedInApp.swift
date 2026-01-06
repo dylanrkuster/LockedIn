@@ -141,7 +141,7 @@ struct LockedInApp: App {
     }
 
     private var dashboardContent: some View {
-        DashboardView(bankState: bankState, familyControlsManager: familyControlsManager)
+        DashboardView(bankState: bankState, familyControlsManager: familyControlsManager, onRefresh: syncWorkouts)
             .onAppear {
                     // Merge any pending transactions from extensions
                     SharedState.mergePendingTransactions()

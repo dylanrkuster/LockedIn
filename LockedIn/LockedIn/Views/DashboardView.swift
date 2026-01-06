@@ -10,6 +10,7 @@ import SwiftUI
 struct DashboardView: View {
     let bankState: BankState
     @Bindable var familyControlsManager: FamilyControlsManager
+    var onRefresh: (() async -> Void)?
     @State private var showActivityHistory = false
     @State private var showDebugLogs = false
     @State private var showDifficultyPicker = false
@@ -22,60 +23,68 @@ struct DashboardView: View {
                 AppColor.background
                     .ignoresSafeArea()
 
-                VStack(spacing: 0) {
-                    // Header
-                    header
-                        .padding(.horizontal, AppSpacing.lg)
-                        .padding(.top, AppSpacing.md)
+                GeometryReader { geometry in
+                    ScrollView {
+                        VStack(spacing: 0) {
+                            // Header
+                            header
+                                .padding(.horizontal, AppSpacing.lg)
+                                .padding(.top, AppSpacing.md)
 
-                    Spacer()
+                            Spacer(minLength: AppSpacing.xxl)
 
-                    // The Vault - center of attention
-                    BalanceDisplay(
-                        balance: bankState.balance,
-                        difficulty: bankState.difficulty,
-                        onDifficultyTap: { showDifficultyPicker = true }
-                    )
+                            // The Vault - center of attention
+                            BalanceDisplay(
+                                balance: bankState.balance,
+                                difficulty: bankState.difficulty,
+                                onDifficultyTap: { showDifficultyPicker = true }
+                            )
 
-                    Spacer()
+                            Spacer(minLength: AppSpacing.xxl)
 
-                    // Progress gauge
-                    ProgressBar(
-                        current: bankState.balance,
-                        max: bankState.maxBalance,
-                        accentColor: bankState.difficulty.color
-                    )
-                    .padding(.horizontal, AppSpacing.xxl)
+                            // Progress gauge
+                            ProgressBar(
+                                current: bankState.balance,
+                                max: bankState.maxBalance,
+                                accentColor: bankState.difficulty.color
+                            )
+                            .padding(.horizontal, AppSpacing.xxl)
 
-                    Spacer()
-                        .frame(height: AppSpacing.xl)
+                            Spacer(minLength: AppSpacing.xl)
 
-                    // Footer sections
-                    VStack(spacing: 0) {
-                        // Divider
-                        divider
+                            // Footer sections
+                            VStack(spacing: 0) {
+                                // Divider
+                                divider
 
-                        // Activity (transaction history)
-                        ActivitySection(
-                            transactions: bankState.recentTransactions,
-                            accentColor: bankState.difficulty.color,
-                            currentBalance: bankState.balance,
-                            onSeeAll: {
-                                AnalyticsManager.track(.activityHistoryViewed)
-                                showActivityHistory = true
+                                // Activity (transaction history)
+                                ActivitySection(
+                                    transactions: bankState.recentTransactions,
+                                    accentColor: bankState.difficulty.color,
+                                    currentBalance: bankState.balance,
+                                    onSeeAll: {
+                                        AnalyticsManager.track(.activityHistoryViewed)
+                                        showActivityHistory = true
+                                    }
+                                )
+                                .padding(.horizontal, AppSpacing.lg)
+                                .padding(.vertical, AppSpacing.md)
+
+                                // Divider
+                                divider
+
+                                // Blocked apps
+                                BlockedAppsSection(manager: familyControlsManager, accentColor: bankState.difficulty.color)
+                                    .padding(.horizontal, AppSpacing.lg)
+                                    .padding(.vertical, AppSpacing.md)
                             }
-                        )
-                        .padding(.horizontal, AppSpacing.lg)
-                        .padding(.vertical, AppSpacing.md)
-
-                        // Divider
-                        divider
-
-                        // Blocked apps
-                        BlockedAppsSection(manager: familyControlsManager, accentColor: bankState.difficulty.color)
-                            .padding(.horizontal, AppSpacing.lg)
-                            .padding(.vertical, AppSpacing.md)
+                        }
+                        .frame(minHeight: geometry.size.height)
                     }
+                    .refreshable {
+                        await onRefresh?()
+                    }
+                    .tint(bankState.difficulty.color)
                 }
             }
             .navigationBarHidden(true)
@@ -139,7 +148,7 @@ struct DashboardView: View {
 }
 
 #Preview {
-    DashboardView(bankState: .mock, familyControlsManager: FamilyControlsManager())
+    DashboardView(bankState: .mock, familyControlsManager: FamilyControlsManager(), onRefresh: nil)
 }
 
 #Preview("Low Balance") {
@@ -151,7 +160,8 @@ struct DashboardView: View {
                 Transaction(id: UUID(), amount: -15, source: "TikTok", timestamp: Date().addingTimeInterval(-300))
             ]
         ),
-        familyControlsManager: FamilyControlsManager()
+        familyControlsManager: FamilyControlsManager(),
+        onRefresh: nil
     )
 }
 
@@ -162,6 +172,7 @@ struct DashboardView: View {
             difficulty: .easy,
             transactions: Transaction.mock
         ),
-        familyControlsManager: FamilyControlsManager()
+        familyControlsManager: FamilyControlsManager(),
+        onRefresh: nil
     )
 }
