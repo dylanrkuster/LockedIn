@@ -66,6 +66,13 @@ enum SharedState {
         set { defaults.set(newValue, forKey: Keys.hasCompletedOnboarding) }
     }
 
+    /// Whether FamilyControls authorization has ever been granted.
+    /// This persists across launches and doesn't depend on system timing.
+    static var hasEverBeenAuthorized: Bool {
+        get { defaults.bool(forKey: Keys.hasEverBeenAuthorized) }
+        set { defaults.set(newValue, forKey: Keys.hasEverBeenAuthorized) }
+    }
+
     // MARK: - Difficulty
 
     /// Raw difficulty value for cross-process access
@@ -551,6 +558,7 @@ enum SharedState {
         static let balance = "balance"
         static let hasLaunched = "hasLaunched"
         static let hasCompletedOnboarding = "hasCompletedOnboarding"
+        static let hasEverBeenAuthorized = "hasEverBeenAuthorized"
         static let difficulty = "difficulty"
         static let selection = "selection"
         static let isMonitoring = "isMonitoring"

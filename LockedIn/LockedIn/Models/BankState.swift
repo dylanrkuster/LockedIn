@@ -7,6 +7,7 @@
 //
 
 import Foundation
+import WidgetKit
 
 @Observable
 final class BankState {
@@ -42,6 +43,9 @@ final class BankState {
                     SharedState.balance = balance
                     SharedState.synchronize()
                 }
+
+                // Refresh widget to show updated balance
+                WidgetCenter.shared.reloadTimelines(ofKind: "BalanceWidget")
             }
         }
     }
@@ -55,6 +59,8 @@ final class BankState {
             balance = min(balance, maxBalance)
             // Update app icon to reflect new difficulty
             AppIconManager.updateIcon(for: difficulty)
+            // Refresh widget to show updated difficulty color
+            WidgetCenter.shared.reloadTimelines(ofKind: "BalanceWidget")
         }
     }
 

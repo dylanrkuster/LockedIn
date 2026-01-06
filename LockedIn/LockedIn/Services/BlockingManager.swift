@@ -82,11 +82,13 @@ final class BlockingManager {
         SharedState.usedMinutesToday = 0
         SharedState.synchronize()
 
-        // Create events from minute 1 to min(balance, maxIncrementalMinutes)
-        let maxMinutes = min(balance, Self.maxIncrementalMinutes)
+        // CRITICAL: Always create events for ALL possible minutes (up to maxIncrementalMinutes).
+        // This ensures that when balance increases (e.g., from workout), events are already
+        // registered and will fire correctly. If we only created events for current balance,
+        // users could bypass blocking after earning more minutes.
         var events: [DeviceActivityEvent.Name: DeviceActivityEvent] = [:]
 
-        for minute in 1...maxMinutes {
+        for minute in 1...Self.maxIncrementalMinutes {
             let event = DeviceActivityEvent(
                 applications: selection.applicationTokens,
                 categories: selection.categoryTokens,
@@ -191,5 +193,52 @@ final class BlockingManager {
     /// Check if monitoring is currently active for our activity
     var activitiesBeingMonitored: [DeviceActivityName] {
         center.activities
+    }
+
+    /// Check if our activity is registered with the system
+    var isActivityRegistered: Bool {
+        center.activities.contains(Self.activityName)
+    }
+
+    // MARK: - Health Check & Recovery
+
+    /// Ensure monitoring is active and healthy. Call on every app foreground.
+    /// This is the main entry point for the self-healing monitoring system.
+    ///
+    /// - Parameters:
+    ///   - selection: Currently selected apps to block
+    ///   - balance: Current balance in minutes
+    ///   - forceRestart: If true, always restart monitoring regardless of current state
+    func ensureMonitoringActive(
+        selection: FamilyActivitySelection,
+        balance: Int,
+        forceRestart: Bool = false
+    ) {
+        // Always sync shield state first (this is cheap and idempotent)
+        syncShieldState(balance: balance, selection: selection)
+
+        // Nothing to monitor if no apps selected
+        guard !selection.applicationTokens.isEmpty || !selection.categoryTokens.isEmpty else {
+            return
+        }
+
+        // Check if we need to restart
+        let shouldRestart = forceRestart || !isActivityRegistered
+
+        if shouldRestart {
+            // Stop any existing (possibly orphaned) monitoring
+            if isActivityRegistered {
+                stopMonitoring()
+            }
+
+            // Start fresh
+            if balance > 0 {
+                do {
+                    try startMonitoring(selection: selection, balance: balance)
+                } catch {
+                    print("[BlockingManager] Failed to start monitoring: \(error)")
+                }
+            }
+        }
     }
 }

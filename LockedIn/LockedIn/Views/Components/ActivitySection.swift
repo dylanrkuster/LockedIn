@@ -13,7 +13,7 @@ struct ActivitySection: View {
     let currentBalance: Int
     var onSeeAll: (() -> Void)?
 
-    private let maxVisible = 5
+    private let maxVisible = 4
 
     /// Shows consolidated transactions with running balance
     private var ledgerItems: [LedgerItem] {
@@ -33,7 +33,10 @@ struct ActivitySection: View {
                 Spacer()
 
                 if !transactions.isEmpty, let action = onSeeAll {
-                    Button(action: action) {
+                    Button {
+                        HapticManager.impact()
+                        action()
+                    } label: {
                         Text("SEE ALL")
                             .underline()
                             .font(AppFont.label(10))

@@ -35,7 +35,6 @@ struct DashboardView: View {
                     // The Vault - center of attention
                     BalanceDisplay(
                         balance: bankState.balance,
-                        maxBalance: bankState.maxBalance,
                         difficulty: bankState.difficulty,
                         onDifficultyTap: { showDifficultyPicker = true }
                     )
@@ -131,28 +130,36 @@ struct DashboardView: View {
             Spacer()
 
             // Sync workouts button
-            Button {
-                guard !isRefreshing else { return }
-                HapticManager.impact()
-                Task {
+            if isRefreshing {
+                ProgressView()
+                    .progressViewStyle(CircularProgressViewStyle(tint: AppColor.textSecondary))
+                    .scaleEffect(0.8)
+                    .frame(width: 20, height: 20)
+                    .padding(.trailing, AppSpacing.md)
+            } else {
+                Button {
+                    HapticManager.impact()
                     isRefreshing = true
-                    await onRefresh?()
-                    isRefreshing = false
+                    Task {
+                        let start = Date()
+                        await onRefresh?()
+                        let elapsed = Date().timeIntervalSince(start)
+                        if elapsed < 1.0 {
+                            try? await Task.sleep(nanoseconds: UInt64((1.0 - elapsed) * 1_000_000_000))
+                        }
+                        isRefreshing = false
+                    }
+                } label: {
+                    Image(systemName: "arrow.clockwise")
+                        .font(.system(size: 16, weight: .medium))
+                        .foregroundStyle(AppColor.textSecondary)
+                        .frame(width: 20, height: 20)
                 }
-            } label: {
-                Image(systemName: "arrow.clockwise")
-                    .font(.system(size: 16, weight: .medium))
-                    .foregroundStyle(AppColor.textSecondary)
-                    .rotationEffect(.degrees(isRefreshing ? 360 : 0))
-                    .animation(
-                        isRefreshing ? .linear(duration: 1).repeatForever(autoreverses: false) : .default,
-                        value: isRefreshing
-                    )
+                .padding(.trailing, AppSpacing.md)
             }
-            .disabled(isRefreshing)
-            .padding(.trailing, AppSpacing.md)
 
             Button {
+                HapticManager.impact()
                 AnalyticsManager.track(.settingsOpened)
                 showSettings = true
             } label: {
@@ -175,11 +182,10 @@ struct DashboardView: View {
     DashboardView(bankState: .mock, familyControlsManager: FamilyControlsManager(), onRefresh: nil)
 }
 
-#Preview("Low Balance - Extreme (12 min threshold)") {
-    // Extreme: max 60, 20% = 12 min threshold
+#Preview("Low Balance") {
     DashboardView(
         bankState: BankState(
-            balance: 12,
+            balance: 5,
             difficulty: .extreme,
             transactions: [
                 Transaction(id: UUID(), amount: -15, source: "TikTok", timestamp: Date().addingTimeInterval(-300))

@@ -8,7 +8,7 @@
 import UIKit
 
 enum HapticManager {
-    static func impact(_ style: UIImpactFeedbackGenerator.FeedbackStyle = .light) {
+    static func impact(_ style: UIImpactFeedbackGenerator.FeedbackStyle = .heavy) {
         UIImpactFeedbackGenerator(style: style).impactOccurred()
     }
 
