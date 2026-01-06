@@ -897,4 +897,57 @@ BLOCKED                          EDIT
 
 ---
 
-*Document authored by Claude. Updated January 3, 2026.*
+## Appendix F: Taking Marketing Screenshots
+
+### Overview
+
+Marketing screenshots are defined in `LockedIn/MarketingScreenshots.swift`. There are 5 screenshots:
+
+| # | View | Content |
+|---|------|---------|
+| 1 | `Screenshot1_Hero` | Main balance display (47 min) |
+| 2 | `Screenshot2_Blocked` | Shield/blocked state |
+| 3 | `Screenshot3_Difficulty` | Difficulty selection |
+| 4 | `Screenshot4_Activity` | Activity history |
+| 5 | `Screenshot5_BlockedApps` | Blocked apps section |
+
+### How to Capture Screenshots
+
+Use the `/screenshots` command to launch the screenshot capture mode:
+
+```
+/screenshots
+```
+
+This will:
+1. Temporarily modify the app to show marketing screenshots
+2. Boot the iPhone 14 Plus simulator (App Store requirement: 6.7" display)
+3. Build and install the app
+4. Launch with navigation controls (tap to show, auto-hide after 3s)
+
+**Taking Screenshots:**
+1. Wait for controls to hide (or don't tap)
+2. Press `Cmd+S` in Simulator to save screenshot
+3. Tap screen to show controls, navigate to next screenshot
+4. Repeat for all 5 screenshots
+
+**After capturing**, run `/screenshots-cleanup` to restore normal app behavior.
+
+### Manual Process (if command unavailable)
+
+1. In `LockedInApp.swift`, set `marketingScreenshotMode = true`
+2. Build and run on iPhone 14 Plus simulator
+3. Capture screenshots
+4. Set `marketingScreenshotMode = false` and commit
+
+### App Store Screenshot Requirements
+
+| Device | Size | Simulator |
+|--------|------|-----------|
+| 6.7" iPhone | 1290 x 2796 | iPhone 14 Plus, 15 Plus, 16 Plus |
+| 6.5" iPhone | 1284 x 2778 | iPhone 14 Pro Max, 15 Pro Max |
+| 5.5" iPhone | 1242 x 2208 | iPhone 8 Plus |
+
+---
+
+*Document authored by Claude. Updated January 5, 2026.*

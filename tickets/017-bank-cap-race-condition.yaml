@@ -1,0 +1,40 @@
+id: '017'
+type: bug
+title: Bank balance cap not enforced due to stale state in background workout sync
+priority: P0
+complexity: standard
+status: open
+
+po_notes: |
+  - P0: Core mechanic broken. "Difficulty as Identity" tenet violated.
+  - Cap is fundamental to difficulty system. Users can exceed max balance.
+  - Race condition between extension writes and main app reads.
+  - Need to sync state BEFORE processing workouts.
+
+description: |
+  Users can exceed the bank balance cap when workouts sync in background.
+
+  Root cause: HKObserverQuery callback processes workouts using bankState.balance,
+  but this value may be stale (not synced from SharedState). The extension
+  updates SharedState.balance for usage, but BankState.balance only syncs
+  on foreground. This causes the cap calculation to use wrong values.
+
+  Example: User on Medium (cap 180), balance 178 (per SharedState), but
+  bankState.balance is stale at 175. Workout earns +5, cap calculation
+  allows it (180-175=5), balance goes to 180 but transaction shows +5
+  instead of correctly capped +2.
+
+acceptance_criteria:
+  - Sync BankState from SharedState BEFORE processing any workout
+  - OR use SharedState.balance directly in cap calculation
+  - Transaction amount must reflect the capped value
+  - Add unit test for cap enforcement with concurrent state changes
+  - Balance must never exceed difficulty max, even transiently
+
+investigation_hints:
+  - Issue is in processNewWorkouts() at LockedInApp.swift:215
+  - bankState.balance may be stale when HKObserverQuery fires in background
+  - syncFromSharedState() only called on willEnterForegroundNotification
+  - Fix option 1: call bankState.syncFromSharedState() at start of processNewWorkouts()
+  - Fix option 2: modify BankState.earn() to read SharedState.balance for cap calc
+  - Fix option 3: use SharedState.balance and SharedState.maxBalance in processNewWorkouts()

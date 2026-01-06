@@ -26,42 +26,113 @@ struct LockedInApp: App {
         }
     }
 
+    // MARK: - TEMPORARY: Marketing Screenshot Mode
+    // Set to true to capture App Store screenshots (use /screenshots command)
+    private let marketingScreenshotMode = false
+    @State private var currentScreenshot = 1
+    @State private var showNavigationOverlay = false
+
     var body: some Scene {
         WindowGroup {
-            SplashView {
-                if showOnboarding {
-                    OnboardingView(
-                        familyControlsManager: familyControlsManager,
-                        healthKitManager: healthKitManager,
-                        onComplete: { difficulty in
-                            // Apply the selected difficulty and starting balance
-                            bankState.difficulty = difficulty
-                            bankState.balance = difficulty.startingBalance
-                            // Mark onboarding complete AFTER state is set
-                            // (ensures consistent state if app killed mid-completion)
-                            SharedState.hasCompletedOnboarding = true
-                            SharedState.synchronize()
+            if marketingScreenshotMode {
+                marketingScreenshotView
+            } else {
+                SplashView {
+                    if showOnboarding {
+                        OnboardingView(
+                            familyControlsManager: familyControlsManager,
+                            healthKitManager: healthKitManager,
+                            onComplete: { difficulty in
+                                // Apply the selected difficulty and starting balance
+                                bankState.difficulty = difficulty
+                                bankState.balance = difficulty.startingBalance
+                                // Mark onboarding complete AFTER state is set
+                                // (ensures consistent state if app killed mid-completion)
+                                SharedState.hasCompletedOnboarding = true
+                                SharedState.synchronize()
 
-                            // Analytics: onboarding completed
-                            AnalyticsManager.track(.onboardingCompleted(
-                                difficulty: difficulty.rawValue,
-                                appCount: familyControlsManager.blockedAppCount
-                            ))
-                            AnalyticsManager.setDifficulty(difficulty.rawValue)
-                            AnalyticsManager.setBlockedAppCount(familyControlsManager.blockedAppCount)
-                            // Transition to dashboard
-                            withAnimation {
-                                showOnboarding = false
+                                // Analytics: onboarding completed
+                                AnalyticsManager.track(.onboardingCompleted(
+                                    difficulty: difficulty.rawValue,
+                                    appCount: familyControlsManager.blockedAppCount
+                                ))
+                                AnalyticsManager.setDifficulty(difficulty.rawValue)
+                                AnalyticsManager.setBlockedAppCount(familyControlsManager.blockedAppCount)
+                                // Transition to dashboard
+                                withAnimation {
+                                    showOnboarding = false
+                                }
+                                // Setup blocking and health after onboarding
+                                setupBlocking()
+                                setupHealthKit()
                             }
-                            // Setup blocking and health after onboarding
-                            setupBlocking()
-                            setupHealthKit()
-                        }
-                    )
-                } else {
-                    dashboardContent
+                        )
+                    } else {
+                        dashboardContent
+                    }
                 }
             }
+        }
+    }
+
+    // MARK: - Marketing Screenshot View
+
+    private var marketingScreenshotView: some View {
+        ZStack {
+            // Current screenshot
+            Group {
+                switch currentScreenshot {
+                case 1: Screenshot1_Hero()
+                case 2: Screenshot2_Blocked()
+                case 3: Screenshot3_Difficulty()
+                case 4: Screenshot4_Activity()
+                case 5: Screenshot5_BlockedApps()
+                default: Screenshot1_Hero()
+                }
+            }
+
+            // Navigation overlay - tap to show, auto-hides after 3s
+            if showNavigationOverlay {
+                VStack {
+                    Spacer()
+                    HStack(spacing: 40) {
+                        Button("← Prev") {
+                            if currentScreenshot > 1 { currentScreenshot -= 1 }
+                            resetOverlayTimer()
+                        }
+                        .opacity(currentScreenshot > 1 ? 1 : 0.3)
+
+                        Text("\(currentScreenshot) / 5")
+                            .font(.headline)
+
+                        Button("Next →") {
+                            if currentScreenshot < 5 { currentScreenshot += 1 }
+                            resetOverlayTimer()
+                        }
+                        .opacity(currentScreenshot < 5 ? 1 : 0.3)
+                    }
+                    .foregroundColor(.white)
+                    .padding()
+                    .background(.black.opacity(0.7))
+                    .cornerRadius(12)
+                    .padding(.bottom, 50)
+                }
+                .transition(.opacity)
+            }
+        }
+        .preferredColorScheme(.dark)
+        .ignoresSafeArea()
+        .statusBarHidden(true)
+        .onTapGesture {
+            showNavigationOverlay = true
+            resetOverlayTimer()
+        }
+    }
+
+    private func resetOverlayTimer() {
+        Task { @MainActor in
+            try? await Task.sleep(for: .seconds(3))
+            withAnimation { showNavigationOverlay = false }
         }
     }
 

@@ -1,0 +1,36 @@
+id: '016'
+type: bug
+title: Workout sync notifications not firing
+priority: P1
+complexity: simple
+status: open
+
+po_notes: |
+  - Affects core loop feedback (earn side)
+  - User completes workout, balance updates, but no confirmation
+  - Reduces dopamine reinforcement of the earn mechanic
+  - Other notifications work, so infrastructure is fine
+  - Settings UI missing "Workout synced" toggle per MVP.md 4.3
+
+description: |
+  Workout sync notifications never fire. User completes workout,
+  balance increases correctly, but no "Nice. +X min added" notification.
+  Other notifications (5 min, 15 min warnings) work fine.
+
+  Settings screen is also missing the "Workout synced" notification
+  toggle specified in MVP.md Section 4.3.
+
+acceptance_criteria:
+  - Notification fires when workout syncs with earned amount
+  - Message follows brand voice: "Nice. +X min added to your bank."
+  - If balance was capped, use: "+X min added. Bank full."
+  - Settings screen includes "Workout synced" toggle (default ON)
+  - Toggle persists via SharedState
+  - Respects user's toggle preference
+
+investigation_hints:
+  - Check HealthKitManager.swift for where workouts are processed
+  - Check NotificationManager.swift for workout notification method
+  - Verify notification is being called after successful workout sync
+  - Check SettingsView.swift for missing toggle
+  - Check SharedState.swift for notifyOnWorkoutSync property
