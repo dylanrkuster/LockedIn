@@ -3,6 +3,7 @@ type: improvement
 title: Add minus prefix to spent amounts in day summaries
 priority: P3
 complexity: trivial
+status: closed
 
 po_notes: |
   - Pure visual consistency fix

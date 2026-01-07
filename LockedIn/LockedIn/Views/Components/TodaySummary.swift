@@ -57,7 +57,7 @@ struct TodaySummary: View {
                         .font(AppFont.label(9))
                         .tracking(1)
                         .foregroundStyle(AppColor.textTertiary)
-                    Text("\(todayStats.spent)")
+                    Text("-\(todayStats.spent)")
                         .font(AppFont.mono(12))
                         .foregroundStyle(AppColor.textSecondary)
                 }

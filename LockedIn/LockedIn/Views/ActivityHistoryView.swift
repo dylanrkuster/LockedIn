@@ -163,7 +163,7 @@ struct ActivityHistoryView: View {
                             .font(AppFont.label(9))
                             .tracking(1)
                             .foregroundStyle(AppColor.textTertiary)
-                        Text("\(group.spent)")
+                        Text("-\(group.spent)")
                             .font(AppFont.mono(12))
                             .foregroundStyle(AppColor.textSecondary)
                     }
