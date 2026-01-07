@@ -822,6 +822,12 @@ private struct WidgetsScreen: View {
     let difficulty: Difficulty
     let onContinue: () -> Void
 
+    @State private var isWatchPaired = false
+
+    private func checkWatchPaired() {
+        isWatchPaired = WatchConnectivityManager.shared.isWatchAvailable
+    }
+
     var body: some View {
         VStack(spacing: 0) {
             Spacer()
@@ -869,6 +875,20 @@ private struct WidgetsScreen: View {
                         difficulty: difficulty
                     )
                 }
+
+                // Watch complication (only if paired)
+                if isWatchPaired {
+                    WidgetShowcase(
+                        title: "APPLE WATCH",
+                        subtitle: "Complication on your watch face"
+                    ) {
+                        LockScreenWidgetPreview(
+                            balance: difficulty.startingBalance,
+                            maxBalance: difficulty.maxBalance,
+                            difficulty: difficulty
+                        )
+                    }
+                }
             }
             .padding(.horizontal, AppSpacing.lg)
 
@@ -883,13 +903,46 @@ private struct WidgetsScreen: View {
                     .frame(height: 1)
                     .padding(.horizontal, AppSpacing.lg)
 
-                HStack(spacing: AppSpacing.xl) {
-                    InstructionStep(number: "1", text: "Long press\nyour screen")
-                    InstructionStep(number: "2", text: "Tap the\n+ button")
-                    InstructionStep(number: "3", text: "Search\n\"LOCKEDIN\"")
+                // iPhone instructions
+                VStack(spacing: AppSpacing.sm) {
+                    if isWatchPaired {
+                        Text("IPHONE")
+                            .font(AppFont.label(10))
+                            .tracking(2)
+                            .foregroundStyle(AppColor.textTertiary)
+                    }
+
+                    HStack(spacing: AppSpacing.xl) {
+                        InstructionStep(number: "1", text: "Long press\nyour screen")
+                        InstructionStep(number: "2", text: "Tap the\n+ button")
+                        InstructionStep(number: "3", text: "Search\n\"LOCKEDIN\"")
+                    }
                 }
                 .padding(.horizontal, AppSpacing.lg)
                 .padding(.vertical, AppSpacing.sm)
+
+                // Watch instructions (only if paired)
+                if isWatchPaired {
+                    Rectangle()
+                        .fill(AppColor.border)
+                        .frame(height: 1)
+                        .padding(.horizontal, AppSpacing.lg)
+
+                    VStack(spacing: AppSpacing.sm) {
+                        Text("APPLE WATCH")
+                            .font(AppFont.label(10))
+                            .tracking(2)
+                            .foregroundStyle(AppColor.textTertiary)
+
+                        HStack(spacing: AppSpacing.xl) {
+                            InstructionStep(number: "1", text: "Long press\nwatch face")
+                            InstructionStep(number: "2", text: "Tap Edit,\nswipe right")
+                            InstructionStep(number: "3", text: "Select slot,\nchoose LOCKEDIN")
+                        }
+                    }
+                    .padding(.horizontal, AppSpacing.lg)
+                    .padding(.vertical, AppSpacing.sm)
+                }
 
                 // Divider
                 Rectangle()
@@ -904,6 +957,9 @@ private struct WidgetsScreen: View {
             OnboardingButton(title: "CONTINUE", action: onContinue)
                 .padding(.horizontal, AppSpacing.lg)
                 .padding(.bottom, AppSpacing.xxl)
+        }
+        .onAppear {
+            checkWatchPaired()
         }
     }
 }

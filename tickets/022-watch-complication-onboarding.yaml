@@ -1,0 +1,36 @@
+id: '022'
+type: improvement
+title: Add Apple Watch complication setup to widget onboarding
+priority: P2
+complexity: standard
+status: closed
+
+po_notes: |
+  - Natural follow-on to watch app we just shipped
+  - Improves feature discovery for watch users
+  - Fits existing onboarding pattern (WidgetsScreen already exists)
+  - Keep scope tight: preview + instructions, no extra steps
+  - Only show if user has Apple Watch paired (check via WCSession.isPaired)
+
+description: |
+  Users who own an Apple Watch have no guidance on adding the
+  LockedIn complication. The current WidgetsScreen only covers
+  iPhone widgets. Add a watch complication section following
+  the same pattern.
+
+acceptance_criteria:
+  - Watch complication section added to WidgetsScreen (after iPhone widgets)
+  - Shows circular complication preview matching existing style
+  - Includes 3-step instructions for adding via watch face
+  - Only displays section if Apple Watch is paired
+  - Maintains current screen flow (no new steps added)
+
+implementation_notes: |
+  Check WCSession.default.isPaired to conditionally show section.
+  Instructions for watch:
+    1. Long press watch face
+    2. Tap "Edit" then swipe to complications
+    3. Select slot then choose "LOCKEDIN"
+
+  Reuse LockScreenWidgetPreview style for watch complication preview
+  (circular gauge already matches the watch aesthetic).

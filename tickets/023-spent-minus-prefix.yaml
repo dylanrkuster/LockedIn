@@ -1,0 +1,26 @@
+id: '023'
+type: improvement
+title: Add minus prefix to spent amounts in day summaries
+priority: P3
+complexity: trivial
+
+po_notes: |
+  - Pure visual consistency fix
+  - Low effort, low risk
+  - Affects dashboard "TODAY" section and ActivityHistoryView day headers
+  - No functional change
+
+description: |
+  Day summaries show "earned +X spent Y net ±Z" but spent amount
+  lacks the "-" prefix that earned has with "+". Inconsistent.
+  Should be "earned +X spent -Y net ±Z" for visual symmetry.
+
+acceptance_criteria:
+  - Dashboard "TODAY" summary shows spent with "-" prefix (e.g., "spent -12")
+  - ActivityHistoryView day headers show spent with "-" prefix
+  - Earned amounts retain "+" prefix
+  - Net amounts retain "+" or "-" as appropriate
+
+implementation_notes: |
+  Likely a one-line change in the formatting logic for spent amounts.
+  Check: DashboardView (TODAY section) and ActivityHistoryView (day headers).
