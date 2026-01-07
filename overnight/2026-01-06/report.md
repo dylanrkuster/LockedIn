@@ -1,165 +1,99 @@
 # Overnight Work Report - 2026-01-06
 
 ## Summary
-
 | Metric | Count |
 |--------|-------|
-| Tickets Attempted | 4 |
-| Completed & Merged | 4 |
+| Tickets Attempted | 2 |
+| Completed & Merged | 2 |
 | Failed | 0 |
-
----
 
 ## Completed Tickets
 
-### Ticket 018: Add About section to Settings screen
-
-- **Type:** improvement
-- **Priority:** P2
-- **Complexity:** trivial
-- **Commit:** `b1987c9`
-- **Tests:** All 86 passed
-- **Code Review:** Approved (P2/P3 suggestions only)
-- **Evidence:** `overnight/2026-01-06/ticket-018/`
+### Ticket 022: Add Apple Watch complication setup to widget onboarding
+- **Type:** Improvement (P2)
+- **Commit:** 687dede
+- **Tests:** 86+ passed, 0 failed
+- **Code Review:** APPROVED (P2 issue auto-fixed)
+- **Evidence:** qa/screenshots/ticket-022/
 
 **Changes:**
-- Added ABOUT section to SettingsView
-- Displays app version from Bundle info
-- Added "Send Feedback" link (mailto: integration)
-- Follows existing design patterns (AppFont, AppSpacing, etc.)
+- Added watch complication section to WidgetsScreen (after iPhone widgets)
+- Shows circular complication preview using existing LockScreenWidgetPreview
+- Includes 3-step watch-specific instructions for adding complication
+- Only displays section when Apple Watch is paired (via WatchConnectivityManager)
+- Added IPHONE/APPLE WATCH section labels when both are shown
+
+**Code Review Finding (Fixed):**
+- P2: Original implementation accessed WCSession.default.isPaired directly, which could return stale values before session activation
+- Fixed: Now uses WatchConnectivityManager.shared.isWatchAvailable which properly checks session state
+
+**Files Modified:**
+- LockedIn/LockedIn/Views/OnboardingView.swift
 
 ---
 
-### Ticket 019: Add pull-to-refresh to sync workouts
-
-- **Type:** improvement
-- **Priority:** P2
-- **Complexity:** trivial
-- **Commit:** `d5037e0`
-- **Tests:** All 86 passed
-- **Evidence:** `overnight/2026-01-06/ticket-019/`
+### Ticket 023: Add minus prefix to spent amounts in day summaries
+- **Type:** Improvement (P3, trivial)
+- **Commit:** a5445cd
+- **Tests:** 86+ passed, 0 failed
+- **Code Review:** Self-reviewed (trivial 2-character change)
+- **Evidence:** qa/screenshots/ticket-023/
 
 **Changes:**
-- Added `onRefresh` callback to DashboardView
-- Wrapped dashboard in ScrollView with `.refreshable` modifier
-- Tints refresh spinner with difficulty accent color
-- Uses GeometryReader to preserve full-height layout
-- Triggers `syncWorkouts()` on pull
+- Added "-" prefix to spent amounts in TodaySummary.swift
+- Added "-" prefix to spent amounts in ActivityHistoryView.swift day headers
+- Visual result: "EARNED +45  SPENT -32  NET +13" (was "SPENT 32")
 
----
-
-### Ticket 020: Visual warning state for low balance
-
-- **Type:** improvement
-- **Priority:** P2
-- **Complexity:** trivial
-- **Commit:** `54e6494`
-- **Tests:** All 86 passed
-- **Evidence:** `overnight/2026-01-06/ticket-020/`
-
-**Changes:**
-- Balance number pulses slowly (opacity animation) when <= 5 minutes
-- Progress bar fill turns red regardless of difficulty when <= 5 min
-- Animation uses `.easeInOut(duration: 1.25)` (brutalist aesthetic)
-- Pulse activates/deactivates when crossing threshold
-- Added previews for low balance states
-
----
-
-### Ticket 021: Add Today's summary stats to dashboard
-
-- **Type:** improvement
-- **Priority:** P2
-- **Complexity:** trivial
-- **Commit:** `384ded8`
-- **Tests:** All 86 passed
-- **Evidence:** `overnight/2026-01-06/ticket-021/`
-
-**Changes:**
-- Created `TodaySummary.swift` component
-- Shows: earned today (+X), spent today (-X), net (NET +/-X)
-- Positioned between progress bar and activity section
-- Accent color for positive values, neutral for spent/negative
-- Accessibility support with descriptive labels
+**Files Modified:**
+- LockedIn/LockedIn/Views/Components/TodaySummary.swift
+- LockedIn/LockedIn/Views/ActivityHistoryView.swift
 
 ---
 
 ## Failed Tickets
 
-*None*
+None.
 
 ---
 
 ## Evidence Locations
-
-| Ticket | Location |
-|--------|----------|
-| 018 | `overnight/2026-01-06/ticket-018/evidence.md` |
-| 019 | `overnight/2026-01-06/ticket-019/evidence.md` |
-| 020 | `overnight/2026-01-06/ticket-020/evidence.md` |
-| 021 | `overnight/2026-01-06/ticket-021/evidence.md` |
+- Plans: plans/ticket-022.md, plans/ticket-023.md
+- Screenshots: qa/screenshots/ticket-022/, qa/screenshots/ticket-023/
+- Attempt Logs: overnight/2026-01-06/
 
 ---
 
 ## Your Review Checklist
 
-For each completed ticket, verify:
+### Ticket 022: Watch Complication Onboarding
+- [ ] Implementation matches requirements (watch complication section in WidgetsScreen)
+- [ ] Uses existing LockScreenWidgetPreview for complication preview
+- [ ] Instructions are clear: Long press → Edit, swipe → Select slot, LOCKEDIN
+- [ ] Conditional display based on watch pairing works correctly
+- [ ] Code quality acceptable (uses WatchConnectivityManager properly)
 
-### Ticket 018: Settings About Section
-- [ ] Version displays correctly in Settings
-- [ ] "Send Feedback" link opens email composer
-- [ ] Design matches existing brutalist aesthetic
-
-### Ticket 019: Pull-to-Refresh
-- [ ] Pull gesture triggers at top of dashboard
-- [ ] Spinner uses difficulty accent color
-- [ ] New workouts appear after refresh completes
-
-### Ticket 020: Low Balance Warning
-- [ ] Balance pulses when <= 5 minutes
-- [ ] Progress bar turns red when <= 5 minutes
-- [ ] Warning deactivates when balance > 5 minutes
-
-### Ticket 021: Today's Summary
-- [ ] TODAY row shows correct earned/spent/net values
-- [ ] Updates when new transactions occur
-- [ ] Shows +0 -0 NET +0 when no activity today
-
----
-
-## Git Status
-
-```
-Branch: main
-Ahead of origin by: 6 commits
-Last commit: Close ticket 021
-```
-
-To push all changes:
-```bash
-git push origin main
-```
+### Ticket 023: Spent Minus Prefix
+- [ ] Dashboard TODAY section shows spent with "-" prefix
+- [ ] ActivityHistoryView day headers show spent with "-" prefix
+- [ ] Visual consistency achieved across all summary displays
 
 ---
 
 ## Rollback Instructions
 
 If any ticket needs reverting:
+\`\`\`bash
+# Revert ticket 023 (spent minus prefix)
+git revert a5445cd
 
-```bash
-# Ticket 018
-git revert b1987c9
-
-# Ticket 019
-git revert d5037e0
-
-# Ticket 020
-git revert 54e6494
-
-# Ticket 021
-git revert 384ded8
-```
+# Revert ticket 022 (watch complication onboarding)
+git revert 687dede
+\`\`\`
 
 ---
 
-*Report generated: 2026-01-06 00:41*
+## Build Status
+
+All builds succeeded. Test suite: 86+ tests passing.
+
+No warnings or errors in the overnight work.
