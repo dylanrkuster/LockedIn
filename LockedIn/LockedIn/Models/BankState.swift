@@ -44,8 +44,19 @@ final class BankState {
                     SharedState.synchronize()
                 }
 
-                // Refresh widget to show updated balance
-                WidgetCenter.shared.reloadTimelines(ofKind: "BalanceWidget")
+                // Force sync before widget refresh to ensure cross-process visibility
+                SharedState.synchronize()
+
+                // Refresh ALL widgets aggressively - reloadAllTimelines has different throttling behavior
+                // than targeting a specific kind, and may be more reliable from background contexts
+                WidgetCenter.shared.reloadAllTimelines()
+
+                // Sync to Apple Watch
+                WatchConnectivityManager.shared.syncBalance(
+                    balance,
+                    maxBalance: maxBalance,
+                    difficulty: difficulty.rawValue
+                )
             }
         }
     }
@@ -59,8 +70,15 @@ final class BankState {
             balance = min(balance, maxBalance)
             // Update app icon to reflect new difficulty
             AppIconManager.updateIcon(for: difficulty)
-            // Refresh widget to show updated difficulty color
-            WidgetCenter.shared.reloadTimelines(ofKind: "BalanceWidget")
+            // Refresh ALL widgets
+            WidgetCenter.shared.reloadAllTimelines()
+
+            // Sync to Apple Watch
+            WatchConnectivityManager.shared.syncBalance(
+                balance,
+                maxBalance: maxBalance,
+                difficulty: difficulty.rawValue
+            )
         }
     }
 

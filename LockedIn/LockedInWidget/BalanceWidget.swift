@@ -29,31 +29,54 @@ struct BalanceEntry: TimelineEntry {
 // MARK: - Timeline Provider
 
 struct BalanceProvider: TimelineProvider {
+    /// Read fresh state from disk, bypassing any cached UserDefaults instance.
+    /// Critical for cross-process updates from DeviceActivityMonitor extension.
+    private func readFreshState() -> (balance: Int, maxBalance: Int, difficulty: String) {
+        // Create new UserDefaults instance to bypass in-memory cache
+        let freshDefaults = UserDefaults(suiteName: "group.usdk.LockedIn")
+        let balance = freshDefaults?.integer(forKey: "balance") ?? 0
+        let difficulty = freshDefaults?.string(forKey: "difficulty") ?? "MEDIUM"
+
+        // Compute maxBalance from difficulty (avoid cached SharedState)
+        let maxBalance: Int
+        switch difficulty {
+        case "EASY": maxBalance = 240
+        case "MEDIUM": maxBalance = 120
+        case "HARD": maxBalance = 60
+        case "EXTREME": maxBalance = 30
+        default: maxBalance = 120
+        }
+
+        return (balance, maxBalance, difficulty)
+    }
+
     func placeholder(in context: Context) -> BalanceEntry {
         .placeholder
     }
 
     func getSnapshot(in context: Context, completion: @escaping (BalanceEntry) -> Void) {
+        let state = readFreshState()
         let entry = BalanceEntry(
             date: Date(),
-            balance: SharedState.balance,
-            maxBalance: SharedState.maxBalance,
-            difficulty: SharedState.difficultyRaw
+            balance: state.balance,
+            maxBalance: state.maxBalance,
+            difficulty: state.difficulty
         )
         completion(entry)
     }
 
     func getTimeline(in context: Context, completion: @escaping (Timeline<BalanceEntry>) -> Void) {
+        let state = readFreshState()
         let entry = BalanceEntry(
             date: Date(),
-            balance: SharedState.balance,
-            maxBalance: SharedState.maxBalance,
-            difficulty: SharedState.difficultyRaw
+            balance: state.balance,
+            maxBalance: state.maxBalance,
+            difficulty: state.difficulty
         )
 
-        // Refresh every minute as fallback (primary refresh via WidgetCenter.reloadTimelines from extensions)
-        // Frequent polling ensures balance stays in sync even if explicit refresh is throttled
-        let nextUpdate = Calendar.current.date(byAdding: .minute, value: 1, to: Date()) ?? Date()
+        // Aggressive refresh as fallback - 30 seconds ensures balance stays in sync
+        // even when explicit reloadTimelines() calls are throttled by iOS
+        let nextUpdate = Calendar.current.date(byAdding: .second, value: 30, to: Date()) ?? Date()
         let timeline = Timeline(entries: [entry], policy: .after(nextUpdate))
         completion(timeline)
     }

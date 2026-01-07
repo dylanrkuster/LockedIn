@@ -123,8 +123,12 @@ class DeviceActivityMonitorExtension: DeviceActivityMonitor {
         // Apply balance change with inter-process lock to prevent races with main app
         SharedState.atomicBalanceSet(result.newBalance)
 
-        // Refresh widget to show updated balance
-        WidgetCenter.shared.reloadTimelines(ofKind: "BalanceWidget")
+        // Force additional sync to ensure widget process sees the change
+        SharedState.synchronize()
+
+        // Refresh ALL widgets - reloadAllTimelines is more aggressive than targeting specific kind
+        // and may have different throttling behavior from extensions
+        WidgetCenter.shared.reloadAllTimelines()
 
         // Log the spend transaction
         if result.toDeduct > 0 {

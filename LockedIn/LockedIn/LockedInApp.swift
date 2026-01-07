@@ -8,6 +8,7 @@ import HealthKit
 import StoreKit
 import SwiftUI
 import UserNotifications
+import WatchConnectivity
 
 @main
 struct LockedInApp: App {
@@ -22,6 +23,9 @@ struct LockedInApp: App {
 
         // Enable foreground notification display
         UNUserNotificationCenter.current().delegate = NotificationDelegate.shared
+
+        // Initialize Watch Connectivity (activates session)
+        _ = WatchConnectivityManager.shared
 
         // Set install date on first launch (for analytics)
         if SharedState.installDate == nil {
@@ -152,6 +156,13 @@ struct LockedInApp: App {
 
                     setupBlocking()
                     setupHealthKit()
+
+                    // Sync current state to Apple Watch
+                    WatchConnectivityManager.shared.syncBalance(
+                        bankState.balance,
+                        maxBalance: bankState.maxBalance,
+                        difficulty: bankState.difficulty.rawValue
+                    )
                 }
                 .onChange(of: familyControlsManager.selection) { _, _ in
                     // Selection changed - must restart monitoring with new app tokens
@@ -334,6 +345,9 @@ struct LockedInApp: App {
 
         // Reload balance from SharedState (may have changed by DeviceActivityMonitor extension)
         bankState.syncFromSharedState()
+
+        // Sync to Apple Watch (extension changes won't have synced directly)
+        WatchConnectivityManager.shared.syncFromSharedState()
 
         // Sync shield state based on current balance (doesn't restart monitoring)
         blockingManager.syncShieldState(
